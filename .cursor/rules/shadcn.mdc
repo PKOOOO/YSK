@@ -1,0 +1,211 @@
+---
+description: shadcn/ui setup, component installation, and usage rules
+globs: ["components/**", "app/**/*.tsx"]
+---
+
+# shadcn/ui Rules
+
+## Setup
+```bash
+npx shadcn-ui@latest init
+# When prompted:
+# - Style: Default
+# - Base color: Neutral
+# - CSS variables: Yes
+```
+
+## Install These Components Upfront
+Run all of these before building any UI:
+```bash
+npx shadcn-ui@latest add button
+npx shadcn-ui@latest add card
+npx shadcn-ui@latest add dialog
+npx shadcn-ui@latest add input
+npx shadcn-ui@latest add textarea
+npx shadcn-ui@latest add select
+npx shadcn-ui@latest add slider
+npx shadcn-ui@latest add table
+npx shadcn-ui@latest add tabs
+npx shadcn-ui@latest add badge
+npx shadcn-ui@latest add label
+npx shadcn-ui@latest add separator
+npx shadcn-ui@latest add avatar
+npx shadcn-ui@latest add dropdown-menu
+npx shadcn-ui@latest add toast
+npx shadcn-ui@latest add progress
+npx shadcn-ui@latest add switch
+npx shadcn-ui@latest add skeleton
+npx shadcn-ui@latest add alert
+npx shadcn-ui@latest add sheet
+```
+
+## Critical Rules
+- NEVER build a custom input, button, dialog, or select from scratch — always use shadcn first
+- ALWAYS import shadcn components from `@/components/ui/` — never from the package directly
+- NEVER modify files inside `components/ui/` — those are auto-generated, treat them as read-only
+- If you need to extend a shadcn component, wrap it in a new component in `components/shared/` or the relevant feature folder
+- Use `cn()` from `@/lib/utils` for all conditional className merging on shadcn components
+
+## Customization Pattern
+Override shadcn defaults using Tailwind classes on the component, not by editing the source:
+```tsx
+// WRONG — editing components/ui/button.tsx directly
+// RIGHT — override at usage site
+<Button className="bg-pink-400 hover:bg-pink-500 text-white w-full">
+  Submit
+</Button>
+```
+
+## Component Usage Patterns for This App
+
+### Dialog (used for Event Wizard, Add Category, Invite Judge)
+```tsx
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
+<Dialog>
+  <DialogTrigger asChild>
+    <Button>Create Event</Button>
+  </DialogTrigger>
+  <DialogContent className="max-w-2xl">
+    <DialogHeader>
+      <DialogTitle>Create New Event</DialogTitle>
+    </DialogHeader>
+    {/* wizard steps here */}
+  </DialogContent>
+</Dialog>
+```
+
+### Slider (used for scoring criteria)
+```tsx
+import { Slider } from "@/components/ui/slider"
+
+<Slider
+  min={0}
+  max={criterion.maxScore}
+  step={1}
+  value={[value]}
+  onValueChange={([v]) => setValue(v)}
+  className="accent-pink-400"
+/>
+```
+
+### Switch (used for settings toggles)
+```tsx
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+
+<div className="flex items-center gap-3">
+  <Switch
+    id="anonymous-mode"
+    checked={anonymousMode}
+    onCheckedChange={setAnonymousMode}
+  />
+  <Label htmlFor="anonymous-mode">Anonymous Judging</Label>
+</div>
+```
+
+### Toast (used for success/error feedback)
+```tsx
+// In layout.tsx
+import { Toaster } from "@/components/ui/toast"
+<Toaster />
+
+// In any component
+import { useToast } from "@/components/ui/use-toast"
+const { toast } = useToast()
+
+toast({
+  title: "Score submitted",
+  description: "Your evaluation has been locked.",
+})
+
+// For errors
+toast({
+  title: "Something went wrong",
+  description: error.message,
+  variant: "destructive",
+})
+```
+
+### Skeleton (used for all loading states)
+```tsx
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Card loading state
+<div className="bg-white rounded-md border border-gray-200 flex flex-col">
+  <Skeleton className="aspect-square rounded-t-md rounded-b-none" />
+  <div className="p-4 flex flex-col gap-3">
+    <Skeleton className="h-5 w-3/4" />
+    <Skeleton className="h-4 w-1/2" />
+    <Skeleton className="h-6 w-20" />
+  </div>
+</div>
+```
+
+### Badge (used for category tags and status pills)
+```tsx
+import { Badge } from "@/components/ui/badge"
+
+// Override with pink accent for category
+<Badge className="bg-pink-400 text-white border-none">
+  {category}
+</Badge>
+
+// Status variants
+<Badge variant="outline" className="text-green-600 border-green-600">Scored</Badge>
+<Badge variant="outline" className="text-yellow-600 border-yellow-600">Pending</Badge>
+```
+
+### Progress (used for judge progress bars)
+```tsx
+import { Progress } from "@/components/ui/progress"
+
+<Progress
+  value={Math.round((scored / assigned) * 100)}
+  className="h-2 bg-gray-100 [&>div]:bg-pink-400"
+/>
+```
+
+### Sheet (used for mobile sidebar)
+```tsx
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+
+// Mobile nav drawer
+<Sheet>
+  <SheetTrigger asChild>
+    <Button variant="ghost" size="icon" className="lg:hidden">
+      <MenuIcon className="size-5" />
+    </Button>
+  </SheetTrigger>
+  <SheetContent side="left" className="w-64 p-0">
+    {/* sidebar content */}
+  </SheetContent>
+</Sheet>
+```
+
+## tailwind.config.ts — Required for shadcn
+Make sure `content` includes all paths shadcn needs:
+```ts
+content: [
+  "./pages/**/*.{ts,tsx}",
+  "./components/**/*.{ts,tsx}",
+  "./app/**/*.{ts,tsx}",
+  "./src/**/*.{ts,tsx}",
+],
+```
+
+## globals.css — shadcn CSS variables
+After init, `globals.css` will have `:root` CSS variables for colors.
+Override the primary color to match pink accent:
+```css
+:root {
+  --primary: 340 82% 62%;        /* pink-400 equivalent */
+  --primary-foreground: 0 0% 100%;
+}
+```

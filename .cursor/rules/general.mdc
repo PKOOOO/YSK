@@ -1,0 +1,81 @@
+---
+description: Project overview, tech stack, folder structure, and global coding conventions
+globs: ["**/*.ts", "**/*.tsx"]
+---
+
+# SciJudge — Science Fair Congress Judging System
+
+## What this app is
+A multi-role web app for managing science fair events. Admins create events, set up categories/criteria, and manage judges. Teachers submit projects on behalf of their schools (no login). Judges log in and score assigned projects via sliders. One codebase, one deployment, one URL — no separate apps.
+
+## Tech Stack
+- Framework: Next.js 14 App Router (NEVER use Pages Router)
+- Language: TypeScript (strict)
+- Database: PostgreSQL via Neon (serverless)
+- ORM: Prisma (NEVER write raw SQL)
+- Auth: Clerk (multi-role: ADMIN + JUDGE)
+- File Uploads: UploadThing
+- Styling: Tailwind CSS + shadcn/ui
+- Email: Resend
+- Charts: Recharts
+- AI: Vercel AI Gateway + AI SDK (anthropic/claude-opus-4-6 by default, claude-sonnet-4-6 for fast/cheap tasks)
+- Deployment: Vercel
+
+## Folder Structure
+```
+scijudge/
+├── app/
+│   ├── (auth)/sign-in and sign-up
+│   ├── (admin)/dashboard/         # Admin-only routes
+│   │   ├── page.tsx               # Overview stats
+│   │   ├── leaderboard/page.tsx
+│   │   ├── scoring/page.tsx
+│   │   ├── settings/page.tsx
+│   │   ├── class/page.tsx         # Categories
+│   │   └── management/page.tsx    # Judge management
+│   ├── (judge)/judge/             # Judge-only routes
+│   │   ├── page.tsx               # Assigned projects
+│   │   └── score/[projectId]/page.tsx
+│   ├── events/page.tsx            # Events list + wizard
+│   ├── submit/[eventId]/page.tsx  # Public teacher submission (no login)
+│   ├── results/[eventId]/page.tsx # Public results (no login)
+│   ├── api/
+│   │   ├── uploadthing/core.ts + route.ts
+│   │   ├── webhooks/clerk/route.ts
+│   │   └── ai/                    # AI API routes
+│   └── layout.tsx
+├── components/
+│   ├── ui/                        # shadcn components
+│   ├── events/EventWizard.tsx, EventCard.tsx, EventsGrid.tsx
+│   ├── dashboard/StatCards.tsx, ProjectsTable.tsx, ProgressChart.tsx
+│   ├── scoring/ScoringForm.tsx, CriteriaSlider.tsx, AISuggestions.tsx
+│   ├── leaderboard/LeaderboardList.tsx
+│   ├── ai/AbstractSummary.tsx, CategorySuggester.tsx, FeedbackPanel.tsx
+│   └── shared/Topbar.tsx, Sidebar.tsx, FileUploader.tsx
+├── lib/
+│   ├── prisma.ts                  # Prisma singleton
+│   ├── uploadthing.ts
+│   ├── ai.ts                      # Vercel AI Gateway client
+│   └── utils.ts
+├── app/actions/                   # All Server Actions go here
+│   ├── events.ts
+│   ├── projects.ts
+│   ├── scoring.ts
+│   ├── categories.ts
+│   ├── judges.ts
+│   └── ai.ts
+├── prisma/schema.prisma
+└── middleware.ts
+```
+
+## Global Coding Rules
+- Use **named exports** everywhere — never default exports except for Next.js page files
+- Use **async/await** — never `.then()` or `.catch()` chains
+- Never use `var` — use `const` or `let`
+- Never use `any` type — use `unknown` or proper types
+- Never add comments unless explicitly asked
+- Use **Server Components** for data fetching, **Client Components** only when interactivity is needed
+- Use **Server Actions** for all mutations — never PUT/POST fetch calls to internal API routes except for webhooks and UploadThing
+- Always use `zod` for input validation in Server Actions
+- Always handle errors — never leave empty catch blocks
+- Use `clsx` + `tailwind-merge` via a `cn()` utility for conditional classNames

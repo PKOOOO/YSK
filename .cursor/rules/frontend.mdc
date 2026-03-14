@@ -1,0 +1,112 @@
+---
+description: UI design system, Tailwind patterns, component structure, and styling rules
+globs: ["**/*.tsx", "**/*.css"]
+---
+
+# UI Design System
+
+## Visual Direction
+Model every page after a modern marketplace aesthetic (Gumroad-style): clean white cards on a soft off-white background, content-first, minimal chrome. Light theme only for judge portal and public pages. Admin dashboard stays light too.
+
+## Core Rules
+- Background body: `bg-stone-100` or `bg-gray-50` — NEVER pure white on body
+- Cards: `bg-white rounded-md border border-gray-200 flex flex-col`
+- Card hover: `hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow duration-200`
+- Primary accent color: `bg-pink-400` (buttons, badges, active states)
+- Primary action buttons: `bg-black text-white` for CTAs
+- NEVER use dark mode classes on public or judge pages
+- NEVER use inline styles — Tailwind only
+
+## Standard Card Pattern
+```tsx
+<div className="bg-white rounded-md border border-gray-200 flex flex-col hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow duration-200">
+  {/* Square thumbnail */}
+  <div className="relative aspect-square">
+    <img className="object-cover w-full h-full rounded-t-md" src={thumbnail} alt={title} />
+  </div>
+  {/* Content */}
+  <div className="p-4 border-t border-gray-200 flex flex-col gap-3 flex-1">
+    <h3 className="text-lg font-medium line-clamp-4">{title}</h3>
+    {/* School row */}
+    <div className="flex items-center gap-2">
+      <div className="rounded-full border shrink-0 size-[16px] bg-gray-200" />
+      <span className="text-sm font-medium underline">{schoolName}</span>
+    </div>
+    {/* Score row */}
+    <div className="flex items-center gap-1">
+      <StarIcon className="size-3.5" />
+      <span className="text-sm font-medium">{score}</span>
+    </div>
+    {/* Category badge */}
+    <div className="relative px-2 py-1 border bg-pink-400 w-fit text-sm font-medium rounded-sm">
+      {category}
+    </div>
+  </div>
+</div>
+```
+
+## Typography Scale
+- Page title: `text-2xl font-semibold` or `text-3xl font-bold`
+- Card headline: `text-lg font-medium line-clamp-4`
+- Section label: `text-sm font-semibold text-gray-700`
+- Secondary/meta: `text-sm text-gray-500`
+- Underlined links: `text-sm font-medium underline`
+
+## Avatars & Icons
+- Small avatars: `rounded-full border shrink-0 size-[16px]`
+- Icon + text: `flex items-center gap-1` or `gap-2`
+- Inline icons: `size-3.5`
+- Button icons: `size-4`
+
+## Badge / Pill Pattern
+```tsx
+<span className="relative px-2 py-1 border bg-pink-400 w-fit text-sm font-medium rounded-sm">
+  {label}
+</span>
+```
+
+## Navigation Tabs Pattern
+```tsx
+<div className="flex items-center gap-2">
+  <button className="rounded-full border border-black px-4 py-1 text-sm font-medium bg-white">
+    Active Tab
+  </button>
+  <button className="px-4 py-1 text-sm font-medium text-gray-500 hover:text-black">
+    Inactive Tab
+  </button>
+</div>
+```
+
+## Layout Rules
+- Page wrapper: `max-w-7xl mx-auto px-4 sm:px-6`
+- Card grids: `grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
+- Stacked sections: `flex flex-col gap-4`
+- Sidebar + content: `flex gap-6` with `w-64 shrink-0` sidebar
+- Filter rows: `flex items-center gap-2`
+
+## Page-Specific Rules
+
+### Submission Form (/submit/[eventId])
+- Centered: `max-w-2xl mx-auto`
+- File upload zone: `border-dashed border-2 border-gray-300 rounded-md p-8 text-center`
+- Submit button: `w-full bg-pink-400 hover:bg-pink-500 text-white font-medium py-3 rounded-md`
+
+### Judge Portal (/judge/**)
+- Mobile-first — single column on mobile, 2-col on tablet: `grid grid-cols-1 sm:grid-cols-2 gap-4`
+- Score sliders: `h-2 accent-pink-400` — large and touch-friendly
+- Score total badge: large and prominent, `text-4xl font-bold text-pink-400`
+
+### Stat Cards (Dashboard)
+```tsx
+<div className="bg-white rounded-md border border-gray-200 p-4 flex flex-col gap-1">
+  <span className="text-sm text-gray-500">{label}</span>
+  <span className="text-3xl font-bold">{value}</span>
+  <span className="text-xs text-gray-400">{sub}</span>
+</div>
+```
+
+## Component Rules
+- Always use `cn()` from lib/utils for conditional classNames
+- Import shadcn components from `@/components/ui/`
+- Never build a custom input/button/dialog from scratch — always use shadcn first
+- Lucide icons only — no other icon libraries

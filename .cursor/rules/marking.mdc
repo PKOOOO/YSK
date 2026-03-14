@@ -1,0 +1,266 @@
+---
+description: Official KSEF marking schemes, categories, and scoring structure. Read this before building anything related to scoring, criteria, categories, or the judge portal.
+globs: ["app/actions/scoring.ts", "app/actions/categories.ts", "components/scoring/**", "app/(judge)/**", "app/(admin)/dashboard/class/**"]
+---
+
+# KSEF Official Marking Schemes
+
+This app implements the Kenya Science and Engineering Fair (KSEF) judging system.
+There are TWO separate marking schemes depending on the school level:
+- **JSS** (Junior Secondary School) — total 65 marks
+- **Senior School / Non-Robotics** — total 75 marks
+
+Both schemes are divided into THREE parts judged across TWO sessions.
+
+---
+
+## SCHOOL LEVEL CATEGORIES
+
+### Junior Secondary School (JSS) Categories
+| # | Category | Subject Areas |
+|---|---|---|
+| 1 | Mathematical, Chemical and Physical Science | Algebra, Analysis, Applied mathematics, Geometry, Probability, Physics, Chemistry, Communications, Computational science |
+| 2 | Biological and Environmental Science | Cellular biology, General biology, First aid, Reproductive health, Disease prevention, Bioremediation, Ecosystems, Recycling, Waste management |
+| 3 | Agriculture | Agricultural production, Irrigation, Resource conservation, Urban farming, Food products, Food packaging, Food preservation, Nutrition |
+| 4 | Technology and Engineering | Renewable technology, Machine creation/building/modification, Innovations in science and industry |
+| 5 | Energy and Transportation | Renewable and non-renewable energies, Energy conservation, Sustainable transportation |
+| 6 | Social & Behavioural Science | Animal conservation, Psychology, Behavioural change, Disaster response, Stress management |
+
+### Senior School Categories
+| # | Category | Subject Areas |
+|---|---|---|
+| 1 | Mathematical Science | Algebra, Analysis, Applied mathematics, Geometry, Probability and Statistics |
+| 2 | Physics | Astronomy, Atoms, Molecules, Solids, Electronics, Magnetics, Electromagnetism, Optics, Lasers |
+| 3 | Computer Science | Algorithms, Databases, AI, Networking, Communications, Computational science, Programming |
+| 4 | Chemistry | Analytical, General, Inorganic, Organic, Physical chemistry |
+| 5 | Biology | Cellular Biology, Molecular genetics |
+| 6 | Energy and Transportation | Aerospace, Alternative fuels, Fossil fuel energy, Vehicle development, Renewable energies |
+| 7 | Environmental Science and Management | Bioremediation, Ecosystems management, Environmental engineering, Land resource management |
+| 8 | Agriculture | Agronomy Development, Photosynthesis, Plant physiology, Plant evolution, Animal Sciences |
+| 9 | Food Technology / Home Economics | Food microbiology, Food packing, Food preservation, Food safety, New products development |
+| 10 | Engineering | Design, building, use of engines, machines, structures, apparatus, manufacturing processes |
+| 11 | Technology and Applied Technology | Appropriate technology, Innovations in science, Knowledge economy, Research development |
+| 12 | Behavioural Science | Psychology, Animal conservation, Behavioural change, Disaster response, Stress management |
+| 13 | Automation & Mission-Based Robotics | Operation of robots, Coding and execution of missions |
+| 14 | Research-Based Robotics and Intelligent Machines | AI robots, Smart Systems, Improvisation |
+| 15 | Clothing, Textiles and Decor | Fashion design, Fabric patterns, Recycling of fabrics, Textile care, Dye work, Spinning |
+| 16 | Microbiology and Health Science | Immunology, Antibiotics, Antimicrobials, Bacteriology, Virology, Medicine and health sciences |
+| 17 | Space Science | Outer space, Aerospace, Astronomy, Aeronautic engineering, Drones |
+| 18 | Waste Management | Recycling, Waste management, Pollution |
+
+---
+
+## JSS MARKING SCHEME (Total: 65 marks)
+
+### PART A — Written Communication (Session 1) — Max: 20 marks
+| # | Criterion | Max Score |
+|---|---|---|
+| 1 | Write-up neatly and logically organized (clearly labeled sections, plagiarism pledge) | 2 |
+| 2 | Evidence of background research in write-up | 1 |
+| 3 | Written language in write-up or display board (legible, correct fonts, no spelling mistakes) | 1 |
+| 4 | Objectives reflected in write-up and display board | 2 |
+| 5 | Methods and materials used in write-up and display board | 2 |
+| 6 | Results in write-up and display board (tabular + graphs) | 2 |
+| 7 | Analysis of results in write-up or display board | 1 |
+| 8 | Discussion of results (patterns, trends, anomalies, limitations) | 1 |
+| 9 | Future possibilities / recommendations | 1 |
+| 10 | Conclusions (valid, based on findings, linked to objectives) | 1 |
+| 11 | References (correct format) | 1 |
+| 12 | Acknowledgements | 1 |
+| 13 | Display board (correct size, logical flow, neatly organized) | 2 |
+| 14 | Project data file / Portfolio | 2 |
+| **TOTAL** | | **20** |
+
+**Scoring levels for JSS Part A:**
+- Max 1.0: BE=0.25, AE=0.5, ME=0.75, EE=1.0
+- Max 2.0: BE=0.5, AE=1.0, ME=1.5, EE=2.0
+
+### PART B — Oral Communication (Session 2) — Max: 10 marks
+| # | Criterion | Max Score |
+|---|---|---|
+| 1 | Enthusiasm / effort | 1 |
+| 2 | Voice / tone (audible, varying intonation) | 1 |
+| 3 | Self-confidence | 1 |
+| 4 | Scientific language | 2 |
+| 5 | Response to questions | 2 |
+| 6 | Limitations / weaknesses and gaps | 1 |
+| 7 | Possible suggestions / recommendations | 1 |
+| 8 | Authenticity (ownership of project) | 1 |
+| **TOTAL** | | **10** |
+
+### PART C — Scientific Thought, Method and Creativity (Session 2) — Max: 35 marks
+| # | Criterion | Max Score |
+|---|---|---|
+| 1 | Statement of the problem and objectives | 2 |
+| 2 | Introduction / Background information | 2 |
+| 3 | Application of scientific concepts to everyday life | 3 |
+| 4 | Subject mastery | 3 |
+| 5 | Literature review | 2 |
+| 6 | Data adequacy | 3 |
+| 7 | Variables defined and controlled | 2 |
+| 8 | Statement of originality | 2 |
+| 9 | Logical sequence: Apparatus (2) + Procedure (2) + Illustrations (3) | 7 |
+| 10 | Linkage to emerging issues | 2 |
+| 11 | Originality | 3 |
+| 12 | Creativity | 2 |
+| 13 | Skill / workmanship | 2 |
+| **TOTAL** | | **35** |
+
+**JSS Grand Total: 20 + 10 + 35 = 65 marks**
+
+---
+
+## SENIOR / NON-ROBOTICS MARKING SCHEME (Total: 75 marks)
+
+### PART A — Written Communication (Session 1) — Max: 30 marks
+| # | Criterion | Max Score |
+|---|---|---|
+| 1 | Write-up neatly and logically organized | 2 |
+| 2 | Evidence of background research + Introduction | 2 |
+| 3 | Written language in write-up and on poster | 2 |
+| 4 | Aim / hypothesis / objectives | 2 |
+| 5 | Methods and materials | 2 |
+| 6 | Variables identified (dependent and independent) | 2 |
+| 7 | Results (tabular + graphs in write-up, summary on poster) | 2 |
+| 8 | Analysis of results | 2 |
+| 9 | Discussion of results | 2 |
+| 10 | Future possibilities / recommendations | 2 |
+| 11 | Conclusions | 2 |
+| 12 | References (APA format) | 2 |
+| 13 | Acknowledgements | 2 |
+| 14 | Display board | 2 |
+| 15 | Project data file | 2 |
+| **TOTAL** | | **30** |
+
+**Scoring levels for Senior Part A:**
+0=Not done, 0.5=Poor/very weak, 1.0=Satisfactory, 1.5=Good, 2.0=Extensive/well done
+
+### PART B — Oral Communication (Session 2) — Max: 15 marks
+| # | Criterion | Max Score |
+|---|---|---|
+| 1 | Capture of interest | 1 |
+| 2 | Enthusiasm / effort | 1 |
+| 3 | Voice / tone | 1 |
+| 4 | Self-confidence | 1 |
+| 5 | Scientific language | 1 |
+| 6 | Response to questions | 2 |
+| 7 | Presentation of project (logical flow) | 2 |
+| 8 | Limitations / weaknesses and gaps | 2 |
+| 9 | Possible suggestions / recommendations | 2 |
+| 10 | Authenticity | 2 |
+| **TOTAL** | | **15** |
+
+### PART C — Scientific Thought, Method and Creativity (Session 2) — Max: 30 marks
+(Same structure as JSS Part C but max total is 30 not 35)
+| # | Criterion | Max Score |
+|---|---|---|
+| 1 | Statement of the problem | 2 |
+| 2 | Introduction / Background information | 2 |
+| 3 | Application of scientific concepts to everyday life | 3 |
+| 4 | Subject mastery | 3 |
+| 5 | Literature review | 2 |
+| 6 | Data adequacy | 3 |
+| 7 | Variables | 2 |
+| 8 | Statement of originality | 2 |
+| 9 | Logical sequence: Apparatus (2) + Procedure (2) + Illustrations (3) | 7 |
+| 10 | Linkage to emerging issues | 2 |
+| 11 | Originality | 3 |
+| 12 | Creativity | 2 |
+| 13 | Skill / workmanship | 2 |
+| **TOTAL** | | **35** |
+
+**Senior Grand Total: 30 + 15 + 30 = 75 marks**
+
+---
+
+## HOW THIS MAPS TO THE DATABASE
+
+### School Level
+Add a `schoolLevel` field to the `Event` or `Project` model:
+```prisma
+enum SchoolLevel {
+  JSS
+  SENIOR
+}
+```
+
+On the `Project` model:
+```prisma
+schoolLevel SchoolLevel @default(SENIOR)
+```
+
+### Sessions
+Judging happens in TWO sessions per project:
+- **Session 1**: Judge scores Part A (Written Communication) alone
+- **Session 2**: Judge scores Part B (Oral) + Part C (Scientific Thought) together — student must be present
+
+The `JudgeAssignment` model should track which session is being scored:
+```prisma
+enum JudgingSession {
+  SESSION_ONE   // Part A only
+  SESSION_TWO   // Part B + Part C
+}
+```
+
+### Criteria Seeding
+When an event is created or a category is added, **auto-seed the criteria** based on school level. Do not make admins enter 14-15 criteria manually every time.
+
+```ts
+// app/actions/categories.ts
+// After createCategory(), call seedCriteria(categoryId, schoolLevel)
+// This creates all Part A + Part B + Part C criteria automatically
+// with correct maxScore values from the marking scheme above
+```
+
+### Score Parts
+The `Score` model should track totals per part:
+```prisma
+model Score {
+  // ... existing fields
+  partAScore  Float @default(0)   // Written Communication
+  partBScore  Float @default(0)   // Oral Communication
+  partCScore  Float @default(0)   // Scientific Thought
+  totalScore  Float @default(0)   // Sum of all parts — always recalculated
+  session     JudgingSession
+}
+```
+
+---
+
+## SCORING RULES FROM THE OFFICIAL GUIDE
+
+1. **If Part A criterion 5 (Methods) scores 0** → criteria 7, 8, 9 in Part A AND criteria 6 and 9 in Part C must also score 0
+2. **If Apparatus (Part C criterion 9i) scores 0** → Procedure (9ii) must also score 0
+3. **References** — must use APA format, penalize fully for any error (0 or full marks only)
+4. **Originality (Part C criterion 11)**: Copycats=0, Little imagination=1, Modified=2, New/novel=3
+5. **Subject Mastery**: Inaccurate=0, Accurate+shallow=1, Satisfactory+accurate=2, Deep+accurate=3
+6. **Application of scientific concepts**: Not working=1, Partially working=2, Fully working=3
+7. **Authenticity**: Student must demonstrate all methods/techniques — probe depth of external assistance received
+
+---
+
+## UI IMPLICATIONS
+
+### Scoring Page
+- Show which **session** the judge is currently scoring (Session 1 or Session 2)
+- Group criteria visually: **Part A**, **Part B**, **Part C** with subtotals per part
+- Show part subtotals live as sliders move, plus running grand total
+- Display the **scoring level guide** next to each slider:
+  - For 2-point criteria: 0=Not done, 0.5=Poor, 1.0=Satisfactory, 1.5=Good, 2.0=Excellent
+  - For 3-point criteria: 0=Not done, 1=Satisfactory, 2=Good, 3=Excellent
+- Flag dependent criteria: if Methods=0, visually lock and zero out Results, Analysis, Discussion, Data
+
+### Categories Page
+- Show JSS categories and Senior categories as separate tabs
+- When creating a category, ask: JSS or Senior?
+- Auto-seed all criteria on category creation — admin should not need to add them manually
+
+### Judge Portal
+- Clearly label which session the judge is entering scores for
+- Session 1 (Part A) can be done without the student present
+- Session 2 (Part B + C) requires student/teacher to be present — show a reminder banner
+
+### Leaderboard
+- Show separate Part A, Part B, Part C columns in the detailed view
+- Grand total is the primary ranking column
+- Show JSS and Senior rankings separately — they have different max scores

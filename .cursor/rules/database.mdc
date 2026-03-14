@@ -1,0 +1,261 @@
+---
+description: Database rules, full Prisma schema, and Neon-specific config
+globs: ["prisma/**", "lib/prisma.ts", "app/actions/**"]
+---
+
+# Database Rules
+
+## Neon + Prisma Setup
+Always set BOTH connection strings — migrations need the direct (non-pooled) URL:
+```env
+DATABASE_URL=postgresql://...?sslmode=require      # pooled — used at runtime
+DIRECT_URL=postgresql://...?sslmode=require        # direct — used for migrations
+```
+
+## Prisma Client Singleton (lib/prisma.ts)
+```ts
+import { PrismaClient } from "@prisma/client"
+
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+
+export const prisma =
+  globalForPrisma.prisma || new PrismaClient({ log: ["query"] })
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+```
+
+## Critical Rules
+- NEVER write raw SQL — always use Prisma
+- NEVER store a hardcoded total score — always recalculate from ScoreItem values
+- NEVER delete files from UploadThing without using the stored `key` field
+- Always use `onDelete: Cascade` on child relations so orphaned records are cleaned up
+- Always add `@@index` on foreign key fields for query performance
+- When querying by Clerk identity, always look up by `clerkId`, never use Clerk's userId directly as a DB id
+
+## Full Schema (prisma/schema.prisma)
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  JUDGE
+}
+
+enum EventType {
+  SCIENCE_CONTEST
+  PITCH_FEST
+  EXHIBITION
+  POPULARITY_POLL
+  NOMINATION_LIST
+  CREATIVE_COMPETITION
+  PERFORMANCE_CONTEST
+  APPLICATION_REVIEW
+}
+
+enum JudgingMode {
+  OFFICIAL_JUDGE
+  PUBLIC_VOTING
+  GUEST_JUDGE
+  OFFICIAL_AND_GUEST
+  OFFICIAL_AND_PUBLIC
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum ScoreStatus {
+  DRAFT
+  SUBMITTED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String
+  role      Role     @default(JUDGE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invitedBy String?
+
+  judgeAssignments JudgeAssignment[]
+  scores           Score[]
+
+  @@index([clerkId])
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  name        String
+  type        EventType
+  judgingMode JudgingMode
+  status      EventStatus @default(DRAFT)
+  description String?
+  resultsPublic Boolean   @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  categories Category[]
+  projects   Project[]
+}
+
+model Category {
+  id      String @id @default(cuid())
+  name    String
+  color   String @default("#f472b6")
+  eventId String
+
+  event    Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  projects Project[]
+  criteria Criterion[]
+
+  @@index([eventId])
+}
+
+model Criterion {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  maxScore    Int     @default(20)
+  weight      Float   @default(1.0)
+  order       Int     @default(0)
+  categoryId  String
+
+  category Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  scores   ScoreItem[]
+
+  @@index([categoryId])
+}
+
+model Project {
+  id           String   @id @default(cuid())
+  title        String
+  abstract     String?
+  schoolName   String
+  teacherName  String
+  teacherEmail String?
+  projectCode  String?  // Auto-generated e.g. "ENG-004" for anonymous mode
+  eventId      String
+  categoryId   String
+  approved     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // AI-generated fields (cached, not source of truth)
+  aiSummary        String?
+  aiCategorySuggestion String?
+  aiFeedback       String?
+
+  event       Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category    Category          @relation(fields: [categoryId], references: [id])
+  files       ProjectFile[]
+  assignments JudgeAssignment[]
+  scores      Score[]
+
+  @@index([eventId])
+  @@index([categoryId])
+}
+
+model ProjectFile {
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  key        String   // UploadThing key — required for deletion
+  size       Int
+  type       String   // mime type
+  projectId  String
+  uploadedAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model JudgeAssignment {
+  id         String   @id @default(cuid())
+  judgeId    String
+  projectId  String
+  assignedAt DateTime @default(now())
+  conflicted Boolean  @default(false) // Judge flagged conflict of interest
+
+  judge   User    @relation(fields: [judgeId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  score   Score?
+
+  @@unique([judgeId, projectId])
+  @@index([judgeId])
+  @@index([projectId])
+}
+
+model Score {
+  id           String      @id @default(cuid())
+  judgeId      String
+  projectId    String
+  assignmentId String      @unique
+  totalScore   Float       @default(0) // Always recalculated from ScoreItems
+  notes        String?
+  status       ScoreStatus @default(DRAFT)
+  submittedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  judge      User            @relation(fields: [judgeId], references: [id])
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignment JudgeAssignment @relation(fields: [assignmentId], references: [id])
+  items      ScoreItem[]
+
+  @@unique([judgeId, projectId])
+  @@index([projectId])
+}
+
+model ScoreItem {
+  id          String @id @default(cuid())
+  scoreId     String
+  criterionId String
+  value       Float  @default(0)
+
+  score     Score     @relation(fields: [scoreId], references: [id], onDelete: Cascade)
+  criterion Criterion @relation(fields: [criterionId], references: [id])
+
+  @@unique([scoreId, criterionId])
+}
+
+model JudgeInvite {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique @default(cuid())
+  eventId   String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([email])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // e.g. "SCORE_SUBMITTED", "JUDGE_ASSIGNED", "PROJECT_APPROVED"
+  entityId  String
+  entityType String  // "Score", "Project", "JudgeAssignment"
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityId])
+}
+```

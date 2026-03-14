@@ -1,0 +1,137 @@
+---
+description: Complete end-to-end user flow for SciJudge. Read this before building any feature to understand how everything connects.
+globs: ["**/*.ts", "**/*.tsx"]
+---
+
+# SciJudge — End-to-End App Flow
+
+Before building any feature, understand where it sits in this flow. Every page, action, and component maps to one of these steps.
+
+---
+
+## Step 1 — Admin signs up / logs in
+- Clerk handles authentication (Google or email)
+- On signup, Clerk webhook fires → syncs user to DB as `role: ADMIN`
+- After login, admin is redirected to `/events`
+
+---
+
+## Step 2 — Admin creates an event
+- From `/events`, admin opens the 4-step wizard:
+  1. Event name (max 100 chars)
+  2. Event type (Science Contest, Pitch Fest, Exhibition, etc.)
+  3. Judging mode (Official Judge, Guest Judge, Public Voting, etc.)
+  4. Review & confirm
+- Event is saved to DB with status `DRAFT`
+- Admin is redirected into the event dashboard
+
+---
+
+## Step 3 — Admin sets up categories & scoring criteria
+- Admin goes to `/dashboard/class`
+- Creates categories (e.g. Biology, Engineering, Chemistry) with a color
+- Under each category, adds scoring criteria: name, description, max points, weight
+- This becomes the **scoring blueprint** — every judge uses these criteria for projects in that category
+- No judging can happen meaningfully without categories and criteria set up first
+
+---
+
+## Step 4 — Teacher submits a project (no account needed)
+- Public page: `/submit/[eventId]` — zero auth required
+- Teacher fills in:
+  - School name
+  - Teacher name + email
+  - Project title + abstract
+  - Category selection (with AI category suggestion shown automatically)
+  - Uploads research PDF + optional poster images via UploadThing
+- On submit:
+  - Project is created in DB with `approved: false`
+  - Status shows as **Pending** in admin dashboard
+  - AI abstract summary is generated in the background and stored on the project
+
+---
+
+## Step 5 — Admin reviews submissions
+- Admin sees all incoming projects in the dashboard table: school, teacher, category, status
+- For each project, admin can:
+  - **Approve** — project becomes eligible for judge assignment
+  - **Reassign** — move to a different category if teacher selected wrong one
+  - **Reject** — removes project from the event
+- Judging assignments only happen after approval
+
+---
+
+## Step 6 — Admin invites judges & assigns projects
+- From `/dashboard/management`, admin types a judge's email and clicks Invite
+- Resend sends an email with a unique invite link (token stored in `JudgeInvite` table, expires in 7 days)
+- Judge clicks the link → signs up via Clerk → enters system as `role: JUDGE`
+- Admin then assigns specific approved projects to each judge
+- One project can be assigned to multiple judges (scores are averaged)
+
+---
+
+## Step 7 — Judge logs in
+- Judge lands on `/judge` — sees ONLY their assigned projects as cards
+- Each card shows:
+  - Project title
+  - Category badge
+  - School name (or anonymized code like `ENG-004` if anonymous mode is enabled in settings)
+  - Status: Pending or Scored
+- Judges cannot see other judges' assignments, scores, or any admin pages
+
+---
+
+## Step 8 — Judge scores a project
+- Judge clicks a project card → `/judge/score/[projectId]`
+- Page shows:
+  - AI-generated abstract summary (from Step 4 background job)
+  - Full abstract
+  - Category criteria as sliders (0 to maxScore each)
+  - Live total score updates as sliders move
+  - AI score suggestions panel (judge can apply or ignore)
+  - Notes/comments textarea
+- Judge either:
+  - **Save Draft** — saves progress, can return and edit later
+  - **Submit Score** — locks the score, becomes read-only
+- Once submitted, score cannot be changed unless admin explicitly resets it
+
+---
+
+## Step 9 — Admin monitors progress
+- `/dashboard` shows live stats: total projects, scored, pending, judges active
+- Projects table: school, teacher, category, current score, status
+- `/dashboard/management` shows each judge's progress bar (scored / assigned)
+- Admin can reset a submitted score if a judge made an error
+
+---
+
+## Step 10 — Leaderboard
+- `/dashboard/leaderboard` ranks all projects by score
+- If multiple judges scored the same project → final score = average of all submitted scores
+- Admin can filter by category
+- Leaderboard is **private by default** — admin toggles it public when ready
+- Public leaderboard at `/results/[eventId]` shows rankings with no login required
+
+---
+
+## Step 11 — Event closes & results published
+- Admin sets event status to `CLOSED`
+- Judges can no longer submit scores after this point
+- Admin can:
+  - Export full results as PDF or CSV
+  - Generate AI school feedback (per project, sent to teacher email via Resend)
+  - Generate AI narrative report of the entire event
+  - Publish the public results page at `/results/[eventId]`
+
+---
+
+## Key Rules Derived From This Flow
+
+- A project cannot be assigned to a judge until it is `approved: true`
+- A judge can only see projects in their `JudgeAssignment` records — never all projects
+- Scores with `status: SUBMITTED` are locked — UI must be read-only for the judge
+- Anonymous mode hides `schoolName` and `teacherName` from judges — show only `projectCode`
+- `projectCode` is auto-generated on project creation (e.g. `ENG-004` = category prefix + sequential number)
+- Leaderboard scores are always computed from `ScoreItem` averages — never a stored flat value
+- After `EventStatus.CLOSED`, no new `Score` records with `status: SUBMITTED` should be accepted
+- The `/submit/[eventId]` and `/results/[eventId]` pages are fully public — no Clerk auth

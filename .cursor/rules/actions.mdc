@@ -1,0 +1,90 @@
+---
+description: Server Actions conventions and full list of actions to implement
+globs: ["app/actions/**"]
+---
+
+# Server Actions Rules
+
+## Conventions
+- All mutations go through Server Actions in `app/actions/`
+- Always validate inputs with `zod` at the top of every action
+- Always call `requireAdmin()` or `requireJudge()` at the start of protected actions
+- Always revalidate affected paths with `revalidatePath()` after mutations
+- Return `{ success: true, data }` or `{ success: false, error: string }` — never throw to the client
+- Never use API routes for mutations — Server Actions only (except webhooks, UploadThing, and AI routes)
+
+## Pattern
+```ts
+"use server"
+
+import { z } from "zod"
+import { revalidatePath } from "next/cache"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+
+const CreateEventSchema = z.object({
+  name: z.string().min(1).max(100),
+  type: z.nativeEnum(EventType),
+  judgingMode: z.nativeEnum(JudgingMode),
+})
+
+export async function createEvent(input: unknown) {
+  const admin = await requireAdmin()
+  const data = CreateEventSchema.parse(input)
+
+  const event = await prisma.event.create({ data })
+  revalidatePath("/events")
+  return { success: true, data: event }
+}
+```
+
+## Full List of Actions to Implement
+
+### app/actions/events.ts
+- `createEvent(input)` — admin only
+- `updateEvent(id, input)` — admin only
+- `deleteEvent(id)` — admin only
+- `cloneEvent(id)` — copy categories, criteria, judge assignments to new event
+- `getEvents()` — admin only
+- `getEventById(id)`
+- `setEventStatus(id, status: EventStatus)`
+- `toggleResultsPublic(id, isPublic: boolean)`
+
+### app/actions/projects.ts
+- `createProject(input)` — public, no auth (teacher submission)
+- `approveProject(id)` — admin only
+- `rejectProject(id)` — admin only
+- `reassignCategory(id, categoryId)` — admin only
+- `getProjectsByEvent(eventId)`
+- `getProjectById(id)`
+- `deleteProject(id)` — admin only, also deletes UploadThing files
+
+### app/actions/scoring.ts
+- `saveScore(assignmentId, items, notes, status)` — judge only
+- `resetScore(assignmentId)` — admin only (unlocks a submitted score)
+- `getScoreByAssignment(assignmentId)`
+- `getLeaderboard(eventId, categoryId?)` — returns projects sorted by avg score
+- `flagConflict(assignmentId)` — judge flags conflict of interest, auto-unassigns
+
+### app/actions/categories.ts
+- `createCategory(eventId, name, color)` — admin only
+- `updateCategory(id, input)` — admin only
+- `deleteCategory(id)` — admin only
+- `addCriterion(categoryId, input)` — admin only
+- `updateCriterion(id, input)` — admin only
+- `deleteCriterion(id)` — admin only
+- `reorderCriteria(categoryId, orderedIds: string[])` — admin only
+
+### app/actions/judges.ts
+- `inviteJudge(email, eventId)` — creates JudgeInvite, sends Resend email
+- `acceptInvite(token)` — marks invite as used, links judge to event
+- `getJudgesByEvent(eventId)` — admin only
+- `assignJudgeToProject(judgeId, projectId)` — admin only
+- `removeJudgeFromProject(assignmentId)` — admin only
+- `removeJudgeFromEvent(judgeId, eventId)` — admin only
+- `getJudgeProgress(judgeId, eventId)` — returns { scored, assigned, percent }
+
+### app/actions/ai.ts
+- `generateAbstractSummary(projectId)` — called after project creation
+- `generateSchoolFeedback(projectId)` — admin triggers after event closes
+- `generateResultsReport(eventId)` — admin only, full narrative export

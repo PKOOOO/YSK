@@ -1,0 +1,246 @@
+---
+description: AI integration rules using Vercel AI Gateway + AI SDK. Covers model selection, all AI features, and implementation patterns.
+globs: ["app/api/ai/**", "app/actions/ai.ts", "components/ai/**", "lib/ai.ts"]
+---
+
+# AI Integration Rules
+
+## Stack
+- Provider: Vercel AI Gateway (unified endpoint, no per-provider API keys needed in code)
+- SDK: AI SDK (the `ai` package from Vercel)
+- Default model: `anthropic/claude-opus-4-6` — use for all complex reasoning tasks
+- Fast model: `anthropic/claude-sonnet-4-6` — use for quick, cheap tasks (category suggestions, short summaries)
+
+## Decision Rule for Model Selection
+Let the task complexity decide:
+- Abstract summarizer → `claude-sonnet-4-6` (fast, cheap, straightforward)
+- Category suggester → `claude-sonnet-4-6` (simple classification)
+- Auto-score suggestions → `claude-opus-4-6` (reads full PDF, needs reasoning)
+- School feedback report → `claude-opus-4-6` (nuanced, long-form writing)
+- Results narrative report → `claude-opus-4-6` (multi-project synthesis)
+
+## AI Client Setup (lib/ai.ts)
+```ts
+import { generateText, generateObject, streamText } from "ai"
+import { z } from "zod"
+
+// Vercel AI Gateway handles auth — no API key needed in code
+// Models are referenced as "provider/model-name"
+
+export const FAST_MODEL = "anthropic/claude-sonnet-4-6"
+export const SMART_MODEL = "anthropic/claude-opus-4-6"
+```
+
+## ENV Variables
+```env
+# Vercel AI Gateway — set in Vercel project settings, not .env
+# No ANTHROPIC_API_KEY needed in code — gateway handles it
+```
+
+## AI Features to Implement
+
+---
+
+### 1. Abstract Summarizer
+**When**: Project is submitted by a teacher — runs automatically in the background after upload
+**Model**: `claude-sonnet-4-6`
+**Where**: Server Action in `app/actions/ai.ts`, triggered after `createProject()`
+**Output**: 2-3 sentence plain English summary, stored in `Project.aiSummary`
+**Shown to**: Judges on the scoring page above the full abstract
+
+```ts
+import { generateText } from "ai"
+import { FAST_MODEL } from "@/lib/ai"
+import { prisma } from "@/lib/prisma"
+
+export async function generateAbstractSummary(projectId: string) {
+  const project = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+    select: { title: true, abstract: true },
+  })
+
+  const { text } = await generateText({
+    model: FAST_MODEL,
+    prompt: `Summarize this science fair project abstract in 2-3 clear sentences for a judge who needs a quick overview. Be factual and concise.
+
+Title: ${project.title}
+Abstract: ${project.abstract}`,
+  })
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { aiSummary: text },
+  })
+
+  return text
+}
+```
+
+---
+
+### 2. Category Suggester
+**When**: Teacher is filling out the submission form and has typed a title + abstract
+**Model**: `claude-sonnet-4-6`
+**Where**: API route `app/api/ai/suggest-category/route.ts` (needs to be a route because it's called from a public page with no auth)
+**Output**: Structured JSON `{ suggestedCategory: string, confidence: "high" | "medium" | "low", reason: string }`
+**Shown to**: Teacher on the submission form as a suggestion they can accept or ignore
+
+```ts
+import { generateObject } from "ai"
+import { z } from "zod"
+import { FAST_MODEL } from "@/lib/ai"
+
+export async function POST(req: Request) {
+  const { title, abstract, categories } = await req.json()
+
+  const { object } = await generateObject({
+    model: FAST_MODEL,
+    schema: z.object({
+      suggestedCategory: z.string(),
+      confidence: z.enum(["high", "medium", "low"]),
+      reason: z.string(),
+    }),
+    prompt: `Given this science fair project, suggest the most appropriate category from the list provided.
+
+Project Title: ${title}
+Abstract: ${abstract}
+
+Available categories: ${categories.join(", ")}
+
+Return the best matching category name exactly as listed.`,
+  })
+
+  return Response.json(object)
+}
+```
+
+---
+
+### 3. Auto-Score Suggestions
+**When**: Judge opens a project scoring page
+**Model**: `claude-opus-4-6`
+**Where**: API route `app/api/ai/score-suggestions/route.ts` (called client-side from the scoring page)
+**Output**: Structured JSON with a suggested score per criterion and a brief justification
+**Shown to**: Judge as a "AI Suggestion" panel — judge can accept each suggestion or ignore
+**Important**: AI suggestions are NEVER auto-submitted — judge must manually move sliders
+
+```ts
+import { generateObject } from "ai"
+import { z } from "zod"
+import { SMART_MODEL } from "@/lib/ai"
+import { auth } from "@clerk/nextjs/server"
+
+export async function POST(req: Request) {
+  const { userId } = auth()
+  if (!userId) return new Response("Unauthorized", { status: 401 })
+
+  const { projectTitle, abstract, criteria } = await req.json()
+  // criteria = [{ id, name, description, maxScore }]
+
+  const { object } = await generateObject({
+    model: SMART_MODEL,
+    schema: z.object({
+      suggestions: z.array(z.object({
+        criterionId: z.string(),
+        suggestedScore: z.number(),
+        justification: z.string().max(200),
+      })),
+      overallImpression: z.string().max(300),
+    }),
+    prompt: `You are assisting a science fair judge. Based on the project information below, suggest scores for each criterion.
+
+Project: ${projectTitle}
+Abstract: ${abstract}
+
+Criteria (score each from 0 to their maxScore):
+${criteria.map((c: { id: string; name: string; description: string; maxScore: number }) => `- ${c.name} (max ${c.maxScore}): ${c.description}`).join("\n")}
+
+Be fair, objective, and base your scores strictly on what is written in the abstract. If information is insufficient to score a criterion confidently, suggest a mid-range score and note it in the justification.`,
+  })
+
+  return Response.json(object)
+}
+```
+
+---
+
+### 4. School Feedback Generator
+**When**: Admin clicks "Generate Feedback" after event closes
+**Model**: `claude-opus-4-6`
+**Where**: Server Action in `app/actions/ai.ts`
+**Output**: Personalized written feedback per school, stored in `Project.aiFeedback`
+**Shown to**: Admin reviews it, then can email it to the teacher via Resend
+
+```ts
+export async function generateSchoolFeedback(projectId: string) {
+  const project = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+    include: {
+      scores: { include: { items: { include: { criterion: true } } } },
+      category: { include: { criteria: true } },
+    },
+  })
+
+  const scoreBreakdown = project.scores.flatMap(s =>
+    s.items.map(item => `${item.criterion.name}: ${item.value}/${item.criterion.maxScore}`)
+  ).join("\n")
+
+  const judgeNotes = project.scores
+    .map(s => s.notes)
+    .filter(Boolean)
+    .join("\n")
+
+  const { text } = await generateText({
+    model: SMART_MODEL,
+    prompt: `Write constructive, encouraging feedback for a school that participated in a science fair.
+
+School: ${project.schoolName}
+Project: ${project.title}
+Teacher: ${project.teacherName}
+
+Score Breakdown:
+${scoreBreakdown}
+
+Judge Notes:
+${judgeNotes || "No additional notes provided."}
+
+Write 3-4 paragraphs: acknowledge their work, highlight strengths based on high scores, give constructive suggestions for lower-scored criteria, and close with encouragement. Tone: warm, professional, helpful.`,
+  })
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { aiFeedback: text },
+  })
+
+  return text
+}
+```
+
+---
+
+## UI Components for AI Features
+
+### AISuggestions.tsx (on scoring page)
+- Show a collapsible panel: "✨ AI Suggestions"
+- Display suggested score + justification per criterion
+- "Apply" button next to each suggestion — clicking it moves the slider to that value
+- Show loading skeleton while fetching
+- If fetch fails, hide the panel silently — never block the judge from scoring
+
+### AbstractSummary.tsx (on scoring page)
+- Show above the full abstract as a highlighted box
+- Label: "AI Summary"
+- If `project.aiSummary` is null, show nothing
+
+### CategorySuggester.tsx (on submission form)
+- Appears after teacher types title + abstract (debounced 800ms)
+- Shows: "💡 Suggested category: [name] — [reason]"
+- "Use this" button auto-selects the category in the dropdown
+
+## General AI Rules
+- NEVER auto-submit scores based on AI suggestions — human judge must confirm
+- NEVER show AI suggestions as "correct" — label them clearly as suggestions
+- Always cache AI outputs in the DB — never re-run the same generation twice for the same project
+- If an AI call fails, log the error and degrade gracefully — never crash the UI
+- Stream responses for feedback generation (it's long) — use `streamText` not `generateText`
+- All AI calls that require auth must verify Clerk session before calling the model

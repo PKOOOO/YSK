@@ -1,0 +1,138 @@
+---
+description: Clerk auth setup, role-based access, middleware, webhook sync
+globs: ["middleware.ts", "app/(auth)/**", "app/api/webhooks/**", "app/(admin)/**", "app/(judge)/**"]
+---
+
+# Auth Rules (Clerk)
+
+## Roles
+Two roles only: `ADMIN` and `JUDGE`. Role is stored in:
+1. **Clerk publicMetadata**: `{ role: "ADMIN" | "JUDGE" }` — set this in Clerk dashboard or via Clerk backend API
+2. **DB User.role** — synced via webhook on signup
+
+Read role server-side:
+```ts
+import { auth, currentUser } from "@clerk/nextjs/server"
+
+const { sessionClaims } = auth()
+const role = sessionClaims?.metadata?.role as "ADMIN" | "JUDGE"
+```
+
+## Route Protection (middleware.ts)
+```ts
+import { authMiddleware, redirectToSignIn } from "@clerk/nextjs"
+import { NextResponse } from "next/server"
+
+export default authMiddleware({
+  publicRoutes: [
+    "/",
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+    "/submit/(.*)",      // Teacher project submission — no login
+    "/results/(.*)",     // Public results page — no login
+    "/api/webhooks(.*)",
+  ],
+  afterAuth(auth, req) {
+    if (!auth.userId && !auth.isPublicRoute) {
+      return redirectToSignIn({ returnBackUrl: req.url })
+    }
+
+    const role = auth.sessionClaims?.metadata?.role as string | undefined
+    const path = req.nextUrl.pathname
+
+    // Judges cannot access admin dashboard
+    if (role === "JUDGE" && path.startsWith("/dashboard")) {
+      return NextResponse.redirect(new URL("/judge", req.url))
+    }
+
+    // Admins cannot access judge portal
+    if (role === "ADMIN" && path.startsWith("/judge")) {
+      return NextResponse.redirect(new URL("/dashboard", req.url))
+    }
+  },
+})
+
+export const config = {
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+}
+```
+
+## Clerk Webhook — Sync to DB (app/api/webhooks/clerk/route.ts)
+```ts
+import { headers } from "next/headers"
+import { WebhookEvent } from "@clerk/nextjs/server"
+import { Webhook } from "svix"
+import { prisma } from "@/lib/prisma"
+
+export async function POST(req: Request) {
+  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET!
+  const headerPayload = headers()
+  const svix_id = headerPayload.get("svix-id")
+  const svix_timestamp = headerPayload.get("svix-timestamp")
+  const svix_signature = headerPayload.get("svix-signature")
+
+  const body = await req.text()
+  const wh = new Webhook(WEBHOOK_SECRET)
+  let evt: WebhookEvent
+
+  try {
+    evt = wh.verify(body, {
+      "svix-id": svix_id!,
+      "svix-timestamp": svix_timestamp!,
+      "svix-signature": svix_signature!,
+    }) as WebhookEvent
+  } catch {
+    return new Response("Invalid webhook", { status: 400 })
+  }
+
+  if (evt.type === "user.created") {
+    const { id, email_addresses, first_name, last_name, public_metadata } = evt.data
+    await prisma.user.create({
+      data: {
+        clerkId: id,
+        email: email_addresses[0].email_address,
+        name: `${first_name ?? ""} ${last_name ?? ""}`.trim(),
+        role: (public_metadata?.role as "ADMIN" | "JUDGE") ?? "JUDGE",
+      },
+    })
+  }
+
+  return new Response("OK", { status: 200 })
+}
+```
+
+## Helper — Get current DB user
+```ts
+// lib/auth.ts
+import { auth } from "@clerk/nextjs/server"
+import { prisma } from "@/lib/prisma"
+
+export async function getCurrentUser() {
+  const { userId } = auth()
+  if (!userId) return null
+  return prisma.user.findUnique({ where: { clerkId: userId } })
+}
+
+export async function requireAdmin() {
+  const user = await getCurrentUser()
+  if (!user || user.role !== "ADMIN") throw new Error("Unauthorized")
+  return user
+}
+
+export async function requireJudge() {
+  const user = await getCurrentUser()
+  if (!user || user.role !== "JUDGE") throw new Error("Unauthorized")
+  return user
+}
+```
+
+## ENV Variables needed
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+CLERK_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+```
