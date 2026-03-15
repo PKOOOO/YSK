@@ -14,16 +14,36 @@ export const ourFileRouter = {
       return { projectId: input.projectId }
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      await prisma.projectFile.create({
-        data: {
-          name: file.name,
-          url: file.ufsUrl,
-          key: file.key,
-          size: file.size,
-          type: file.type,
-          projectId: metadata.projectId,
-        },
+      console.log("[uploadthing] onUploadComplete fired:", {
+        projectId: metadata.projectId,
+        fileName: file.name,
+        fileKey: file.key,
       })
+
+      // Production backup — on Vercel, UploadThing can reach the callback.
+      // On localhost this never fires, so files are saved client-side instead.
+      try {
+        const existing = await prisma.projectFile.findFirst({
+          where: { key: file.key },
+        })
+        if (!existing) {
+          await prisma.projectFile.create({
+            data: {
+              name: file.name,
+              url: file.ufsUrl ?? file.url,
+              key: file.key,
+              size: file.size,
+              type: file.type ?? "application/octet-stream",
+              projectId: metadata.projectId,
+            },
+          })
+          console.log("[uploadthing] ProjectFile saved (callback):", file.key)
+        } else {
+          console.log("[uploadthing] ProjectFile already exists (saved client-side):", file.key)
+        }
+      } catch (error) {
+        console.error("[uploadthing] Failed to save ProjectFile:", error)
+      }
     }),
 } satisfies FileRouter
 

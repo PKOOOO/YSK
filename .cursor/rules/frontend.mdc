@@ -6,90 +6,308 @@ globs: ["**/*.tsx", "**/*.css"]
 # UI Design System
 
 ## Visual Direction
-Model every page after a modern marketplace aesthetic (Gumroad-style): clean white cards on a soft off-white background, content-first, minimal chrome. Light theme only for judge portal and public pages. Admin dashboard stays light too.
+Model every page after a modern marketplace / Gumroad-style aesthetic: clean white cards on a warm off-white background, strong black borders, content-first layout, minimal chrome. The signature interaction is the "elevated" hover — elements lift up with a hard black box-shadow AND a physical translate. Pink is the accent color, always paired with black.
 
 ## Core Rules
-- Background body: `bg-stone-100` or `bg-gray-50` — NEVER pure white on body
-- Cards: `bg-white rounded-md border border-gray-200 flex flex-col`
-- Card hover: `hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow duration-200`
-- Primary accent color: `bg-pink-400` (buttons, badges, active states)
-- Primary action buttons: `bg-black text-white` for CTAs
-- NEVER use dark mode classes on public or judge pages
-- NEVER use inline styles — Tailwind only
+- Background body: `bg-[#F4F4F0]` — warm off-white. NEVER pure white on body
+- Cards: `bg-white rounded-md border overflow-hidden h-full flex flex-col`
+- Card hover: `hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow`
+- Elevated hover (buttons): `hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all`
+- All borders are **black** by default (set via CSS variable `--border: oklch(0 0 0)` and `--input: oklch(0 0 0)`)
+- Primary accent color: `bg-pink-400` (price badges, active states, hover accent)
+- Primary CTA buttons: `bg-black text-white hover:bg-pink-400 hover:text-primary`
+- Secondary/elevated buttons: `variant="elevated"` — white background that lifts on hover
+- Font: **DM Sans** — import via `next/font/google`
+- NEVER use dark mode classes on public or judge pages (light theme only)
+- NEVER use inline styles — Tailwind only (except dynamic background colors)
+
+## CSS Variables (globals.css)
+These override shadcn defaults to achieve the black-border aesthetic:
+```css
+:root {
+  --border: oklch(0 0 0);        /* Black borders everywhere */
+  --input: oklch(0 0 0);         /* Black input borders */
+  --ring: oklch(0.708 0 0);      /* Focus ring */
+  --primary: oklch(0.205 0 0);   /* Near-black primary */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+}
+```
+
+## Button Variants
+The `elevated` variant is the signature interaction — use shadcn Button with this custom variant:
+```tsx
+// In components/ui/button.tsx, add this variant:
+elevated: "bg-white hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all"
+
+// Default button height is h-12 (taller than typical)
+```
+
+### CRITICAL: Every Button Gets Elevated Hover
+**EVERY interactive button MUST include the elevated hover effect.** No flat, lifeless buttons anywhere.
+The full elevated hover classes are:
+```
+hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all
+```
+For small icon buttons or card-footer actions, use a smaller lift:
+```
+hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all
+```
+
+### Button Recipes (copy-paste these exactly)
+```tsx
+// 1. Primary CTA — black with pink hover + elevated lift
+<button className="px-5 py-2.5 text-sm font-medium bg-black text-white rounded-md border border-black hover:bg-pink-400 hover:text-primary hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all">
+  Create Event
+</button>
+
+// 2. Or using shadcn Button:
+<Button variant="elevated" className="bg-black text-white hover:bg-pink-400 hover:text-primary">
+  Create Event
+</Button>
+
+// 3. Secondary / Cancel — white elevated lift
+<button className="px-4 py-2 text-sm font-medium border rounded-md bg-white hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all">
+  Cancel
+</button>
+
+// 4. Destructive — red with elevated lift
+<button className="px-5 py-2 text-sm font-medium bg-red-600 text-white rounded-md border border-red-600 hover:bg-red-700 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all">
+  Delete
+</button>
+
+// 5. Small icon button (card footers, table actions)
+<button className="p-1.5 rounded-md border bg-white hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all">
+  <Pencil className="size-3.5 text-muted-foreground" />
+</button>
+
+// 6. Small text button with icon (card footers)
+<button className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border rounded-md bg-white text-muted-foreground hover:text-foreground hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all">
+  <Plus className="size-3.5" /> Add Item
+</button>
+
+// 7. Inline table action
+<button className="px-2.5 py-1 text-xs font-medium bg-black text-white rounded hover:bg-pink-400 hover:text-primary transition-colors">
+  Approve
+</button>
+
+// 8. Navbar auth button — full height, border-left, rounded-none
+<Button className="border-l border-t-0 border-b-0 border-r-0 px-12 h-full rounded-none bg-black text-white hover:bg-pink-400 hover:text-black transition-colors text-lg">
+  Dashboard
+</Button>
+
+// 9. Sort/filter pill — rounded-full
+<Button size="sm" variant="secondary" className="rounded-full bg-white hover:bg-white">
+  Active Tab
+</Button>
+
+// 10. Toggle selector (e.g. JSS / Senior)
+<button className={cn(
+  "flex-1 py-2.5 text-sm font-medium border rounded-md transition-all",
+  isActive
+    ? "bg-black text-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+    : "bg-white text-muted-foreground hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px]"
+)}>
+  Option
+</button>
+```
+
+### Modal / Dialog Button Pattern
+Dialog footers ALWAYS follow this layout:
+```tsx
+<div className="flex justify-end gap-2 pt-2">
+  {/* Cancel — white elevated */}
+  <button className="px-4 py-2 text-sm font-medium border rounded-md bg-white hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all">
+    Cancel
+  </button>
+  {/* Confirm — black CTA elevated */}
+  <button className="px-5 py-2 text-sm font-medium bg-black text-white rounded-md border border-black hover:bg-pink-400 hover:text-primary hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all disabled:opacity-50">
+    Confirm
+  </button>
+</div>
+```
 
 ## Standard Card Pattern
 ```tsx
-<div className="bg-white rounded-md border border-gray-200 flex flex-col hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow duration-200">
+<div className="hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow border rounded-md bg-white overflow-hidden h-full flex flex-col">
   {/* Square thumbnail */}
   <div className="relative aspect-square">
-    <img className="object-cover w-full h-full rounded-t-md" src={thumbnail} alt={title} />
+    <img className="object-cover w-full h-full" src={thumbnail} alt={title} />
   </div>
   {/* Content */}
-  <div className="p-4 border-t border-gray-200 flex flex-col gap-3 flex-1">
+  <div className="p-4 border-y flex flex-col gap-3 flex-1">
     <h3 className="text-lg font-medium line-clamp-4">{title}</h3>
     {/* School row */}
     <div className="flex items-center gap-2">
       <div className="rounded-full border shrink-0 size-[16px] bg-gray-200" />
-      <span className="text-sm font-medium underline">{schoolName}</span>
+      <span className="text-sm underline font-medium">{schoolName}</span>
     </div>
     {/* Score row */}
     <div className="flex items-center gap-1">
-      <StarIcon className="size-3.5" />
+      <StarIcon className="size-3.5 fill-black" />
       <span className="text-sm font-medium">{score}</span>
     </div>
-    {/* Category badge */}
-    <div className="relative px-2 py-1 border bg-pink-400 w-fit text-sm font-medium rounded-sm">
-      {category}
+  </div>
+  {/* Badge section */}
+  <div className="p-4">
+    <div className="px-2 py-1 border bg-pink-400 w-fit">
+      <span className="text-sm font-medium">{category}</span>
     </div>
   </div>
 </div>
 ```
 
 ## Typography Scale
-- Page title: `text-2xl font-semibold` or `text-3xl font-bold`
+- Page hero title: `text-4xl font-medium` or `text-[40px] font-medium`
+- Page title: `text-2xl font-medium`
 - Card headline: `text-lg font-medium line-clamp-4`
-- Section label: `text-sm font-semibold text-gray-700`
-- Secondary/meta: `text-sm text-gray-500`
-- Underlined links: `text-sm font-medium underline`
+- Section label: `text-base font-medium`
+- Body / form labels: `text-base font-medium` (larger than default)
+- Secondary/meta: `text-sm font-medium`
+- Underlined links: `underline font-medium`
+- Muted text: `text-muted-foreground`
+
+## Input / Form Styling
+Inputs are taller and bolder than shadcn defaults:
+```tsx
+// In components/ui/input.tsx, add these modified classes:
+"h-12 bg-white font-medium md:text-base"
+
+// Form labels should be text-base (not the tiny default):
+<FormLabel className="text-base">Email</FormLabel>
+```
 
 ## Avatars & Icons
 - Small avatars: `rounded-full border shrink-0 size-[16px]`
+- Medium avatars: `rounded-full border shrink-0 size-[20px]`
 - Icon + text: `flex items-center gap-1` or `gap-2`
 - Inline icons: `size-3.5`
 - Button icons: `size-4`
+- Filled icons: `fill-black` (e.g. StarIcon)
 
 ## Badge / Pill Pattern
 ```tsx
-<span className="relative px-2 py-1 border bg-pink-400 w-fit text-sm font-medium rounded-sm">
-  {label}
+{/* Price-style badge — pink background */}
+<div className="px-2 py-1 border bg-pink-400 w-fit">
+  <span className="text-sm font-medium">{label}</span>
+</div>
+
+{/* Status badge — outline style */}
+<span className="px-2 py-1 border rounded-full text-xs font-medium">
+  {status}
 </span>
 ```
 
-## Navigation Tabs Pattern
+## Navigation Tabs / Sort Pills
 ```tsx
 <div className="flex items-center gap-2">
-  <button className="rounded-full border border-black px-4 py-1 text-sm font-medium bg-white">
+  {/* Active tab */}
+  <Button size="sm" variant="secondary" className="rounded-full bg-white hover:bg-white">
     Active Tab
-  </button>
-  <button className="px-4 py-1 text-sm font-medium text-gray-500 hover:text-black">
+  </Button>
+  {/* Inactive tab */}
+  <Button size="sm" variant="secondary" className="rounded-full bg-transparent border-transparent hover:border-border hover:bg-transparent">
     Inactive Tab
-  </button>
+  </Button>
 </div>
 ```
 
+## Navbar Pattern
+```tsx
+<nav className="h-20 flex border-b justify-between font-medium bg-white">
+  {/* Logo left */}
+  <Link href="/" className="pl-6 flex items-center">
+    <span className="text-2xl font-semibold">YSK</span>
+  </Link>
+  {/* Nav items center — hidden on mobile */}
+  <div className="items-center gap-4 hidden lg:flex">
+    <Button asChild variant="outline" className={cn(
+      "bg-transparent hover:bg-transparent rounded-full hover:border-primary border-transparent px-3.5 text-lg",
+      isActive && "bg-black text-white hover:bg-black hover:text-white",
+    )}>
+      <Link href={href}>{children}</Link>
+    </Button>
+  </div>
+  {/* Auth buttons right — full height */}
+  <div className="hidden lg:flex">
+    <Button className="border-l border-t-0 border-b-0 border-r-0 px-12 h-full rounded-none bg-black text-white hover:bg-pink-400 hover:text-black transition-colors text-lg">
+      Dashboard
+    </Button>
+  </div>
+</nav>
+```
+
+## Empty States
+```tsx
+<div className="border border-black border-dashed flex items-center justify-center p-8 flex-col gap-y-4 bg-white w-full rounded-lg">
+  <InboxIcon />
+  <p className="text-base font-medium">No products found</p>
+</div>
+```
+
+## Skeleton / Loading Pattern
+```tsx
+{/* Card skeleton */}
+<div className="w-full aspect-3/4 bg-neutral-200 rounded-lg animate-pulse" />
+
+{/* Inline loader */}
+<LoaderIcon className="text-muted-foreground animate-spin" />
+```
+
 ## Layout Rules
-- Page wrapper: `max-w-7xl mx-auto px-4 sm:px-6`
-- Card grids: `grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
+- Page wrapper: `px-4 lg:px-12 py-8` (generous horizontal padding)
+- Centered narrow content: `max-w-2xl mx-auto`
+- Card grids: `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4`
+- Sidebar + content: `grid grid-cols-1 lg:grid-cols-6 xl:grid-cols-8 gap-y-6 gap-x-12`
+- Filter sidebar: `lg:col-span-2 xl:col-span-2`
+- Main content: `lg:col-span-4 xl:col-span-6`
 - Stacked sections: `flex flex-col gap-4`
-- Sidebar + content: `flex gap-6` with `w-64 shrink-0` sidebar
 - Filter rows: `flex items-center gap-2`
+- Section dividers: `border-b` (black by default)
+- Content area background: `bg-[#F4F4F0]`
+
+## Filter / Sidebar Panel
+```tsx
+<div className="border rounded-md bg-white">
+  <div className="p-4 border-b flex items-center justify-between">
+    <p className="font-medium">Filters</p>
+    <button className="underline cursor-pointer">Clear</button>
+  </div>
+  <div className="p-4 border-b flex flex-col gap-2">
+    <div className="flex items-center justify-between cursor-pointer">
+      <p className="font-medium">Category</p>
+      <ChevronRightIcon className="size-5" />
+    </div>
+  </div>
+</div>
+```
+
+## Auth Pages
+Split layout with form on left, decorative image on right:
+```tsx
+<div className="grid grid-cols-1 lg:grid-cols-5">
+  <div className="bg-[#F4F4F0] h-screen w-full lg:col-span-3 overflow-y-auto">
+    <form className="flex flex-col gap-8 p-4 lg:p-16">
+      <h1 className="text-4xl font-medium">Welcome back.</h1>
+      {/* Form fields */}
+      <Button variant="elevated" className="bg-black text-white hover:bg-pink-400 hover:text-primary">
+        Log in
+      </Button>
+    </form>
+  </div>
+  <div className="h-screen w-full lg:col-span-2 hidden lg:block"
+    style={{ backgroundImage: "url('/auth-bg.png')", backgroundSize: "cover" }}
+  />
+</div>
+```
 
 ## Page-Specific Rules
 
 ### Submission Form (/submit/[eventId])
 - Centered: `max-w-2xl mx-auto`
-- File upload zone: `border-dashed border-2 border-gray-300 rounded-md p-8 text-center`
-- Submit button: `w-full bg-pink-400 hover:bg-pink-500 text-white font-medium py-3 rounded-md`
+- File upload zone: `border-dashed border-2 border-black rounded-md p-8 text-center`
+- Submit button: `w-full bg-black text-white hover:bg-pink-400 hover:text-primary font-medium py-3 rounded-md`
 
 ### Judge Portal (/judge/**)
 - Mobile-first — single column on mobile, 2-col on tablet: `grid grid-cols-1 sm:grid-cols-2 gap-4`
@@ -98,10 +316,25 @@ Model every page after a modern marketplace aesthetic (Gumroad-style): clean whi
 
 ### Stat Cards (Dashboard)
 ```tsx
-<div className="bg-white rounded-md border border-gray-200 p-4 flex flex-col gap-1">
-  <span className="text-sm text-gray-500">{label}</span>
+<div className="bg-white rounded-md border p-4 flex flex-col gap-1">
+  <span className="text-sm text-muted-foreground">{label}</span>
   <span className="text-3xl font-bold">{value}</span>
-  <span className="text-xs text-gray-400">{sub}</span>
+  <span className="text-xs text-muted-foreground">{sub}</span>
+</div>
+```
+
+### Checkout / Summary Panels
+```tsx
+<div className="border rounded-md overflow-hidden bg-white flex flex-col">
+  <div className="flex items-center justify-between p-4 border-b">
+    <h4 className="font-medium text-lg">Total</h4>
+    <p className="font-medium text-lg">{total}</p>
+  </div>
+  <div className="p-4 flex items-center justify-center">
+    <Button variant="elevated" size="lg" className="text-base w-full text-white bg-primary hover:bg-pink-400 hover:text-primary">
+      Confirm
+    </Button>
+  </div>
 </div>
 ```
 
@@ -110,3 +343,13 @@ Model every page after a modern marketplace aesthetic (Gumroad-style): clean whi
 - Import shadcn components from `@/components/ui/`
 - Never build a custom input/button/dialog from scratch — always use shadcn first
 - Lucide icons only — no other icon libraries
+- All text should use `font-medium` unless specifically muted
+- Links that navigate should be `underline font-medium`
+- **EVERY button MUST have the elevated hover** — shadow lift + translate. No flat buttons anywhere.
+- Use `variant="elevated"` for interactive cards and secondary actions
+- Use `bg-black text-white hover:bg-pink-400 hover:text-primary` for primary CTAs
+- Cancel buttons get `bg-white` with elevated lift
+- Destructive buttons get red bg with elevated lift
+- Small card-footer buttons use the smaller `hover:-translate-x-[2px] hover:-translate-y-[2px]` lift
+- Active toggle states get `shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]` to show depth
+- Always use `transition-all` (not `transition-colors`) on buttons so the translate + shadow animates

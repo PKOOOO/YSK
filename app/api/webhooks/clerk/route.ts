@@ -26,14 +26,25 @@ export async function POST(req: Request) {
 
   if (evt.type === "user.created") {
     const { id, email_addresses, first_name, last_name, public_metadata } = evt.data
-    await prisma.user.create({
-      data: {
-        clerkId: id,
-        email: email_addresses[0].email_address,
-        name: `${first_name ?? ""} ${last_name ?? ""}`.trim(),
-        role: (public_metadata?.role as "ADMIN" | "JUDGE") ?? "JUDGE",
-      },
-    })
+
+    const name = `${first_name ?? ""} ${last_name ?? ""}`.trim() || "Unknown"
+    const email = email_addresses[0]?.email_address
+
+    try {
+      await prisma.user.upsert({
+        where: { clerkId: id },
+        update: { email, name },
+        create: {
+          clerkId: id,
+          email,
+          name,
+          role: (public_metadata?.role as "ADMIN" | "JUDGE") ?? "JUDGE",
+        },
+      })
+    } catch (error) {
+      console.error("[webhook] prisma.user.upsert FAILED:", error)
+      return new Response("Database error", { status: 500 })
+    }
   }
 
   return new Response("OK", { status: 200 })

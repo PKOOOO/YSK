@@ -3,9 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 enum Role {
@@ -86,10 +84,11 @@ model Event {
 }
 
 model Category {
-  id      String @id @default(cuid())
-  name    String
-  color   String @default("#f472b6")
-  eventId String
+  id          String      @id @default(cuid())
+  name        String
+  color       String      @default("#f472b6")
+  eventId     String
+  schoolLevel SchoolLevel @default(SENIOR)
 
   event    Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   projects Project[]
