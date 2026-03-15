@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  JUDGE
+}
+
+enum EventType {
+  SCIENCE_CONTEST
+  PITCH_FEST
+  EXHIBITION
+  POPULARITY_POLL
+  NOMINATION_LIST
+  CREATIVE_COMPETITION
+  PERFORMANCE_CONTEST
+  APPLICATION_REVIEW
+}
+
+enum JudgingMode {
+  OFFICIAL_JUDGE
+  PUBLIC_VOTING
+  GUEST_JUDGE
+  OFFICIAL_AND_GUEST
+  OFFICIAL_AND_PUBLIC
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum ScoreStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum SchoolLevel {
+  JSS
+  SENIOR
+}
+
+enum JudgingSession {
+  SESSION_ONE
+  SESSION_TWO
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String
+  role      Role     @default(JUDGE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invitedBy String?
+
+  judgeAssignments JudgeAssignment[]
+  scores           Score[]
+
+  @@index([clerkId])
+}
+
+model Event {
+  id            String      @id @default(cuid())
+  name          String
+  type          EventType
+  judgingMode   JudgingMode
+  status        EventStatus @default(DRAFT)
+  description   String?
+  resultsPublic Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  categories Category[]
+  projects   Project[]
+}
+
+model Category {
+  id      String @id @default(cuid())
+  name    String
+  color   String @default("#f472b6")
+  eventId String
+
+  event    Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  projects Project[]
+  criteria Criterion[]
+
+  @@index([eventId])
+}
+
+model Criterion {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  maxScore    Int     @default(20)
+  weight      Float   @default(1.0)
+  order       Int     @default(0)
+  categoryId  String
+
+  category Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  scores   ScoreItem[]
+
+  @@index([categoryId])
+}
+
+model Project {
+  id           String      @id @default(cuid())
+  title        String
+  abstract     String?
+  schoolName   String
+  teacherName  String
+  teacherEmail String?
+  projectCode  String?
+  schoolLevel  SchoolLevel @default(SENIOR)
+  eventId      String
+  categoryId   String
+  approved     Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  aiSummary            String?
+  aiCategorySuggestion String?
+  aiFeedback           String?
+
+  event       Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category    Category          @relation(fields: [categoryId], references: [id])
+  files       ProjectFile[]
+  assignments JudgeAssignment[]
+  scores      Score[]
+
+  @@index([eventId])
+  @@index([categoryId])
+}
+
+model ProjectFile {
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  key        String
+  size       Int
+  type       String
+  projectId  String
+  uploadedAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model JudgeAssignment {
+  id         String   @id @default(cuid())
+  judgeId    String
+  projectId  String
+  assignedAt DateTime @default(now())
+  conflicted Boolean  @default(false)
+
+  judge   User    @relation(fields: [judgeId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  score   Score?
+
+  @@unique([judgeId, projectId])
+  @@index([judgeId])
+  @@index([projectId])
+}
+
+model Score {
+  id           String         @id @default(cuid())
+  judgeId      String
+  projectId    String
+  assignmentId String         @unique
+  session      JudgingSession
+  partAScore   Float          @default(0)
+  partBScore   Float          @default(0)
+  partCScore   Float          @default(0)
+  totalScore   Float          @default(0)
+  notes        String?
+  status       ScoreStatus    @default(DRAFT)
+  submittedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  judge      User            @relation(fields: [judgeId], references: [id])
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignment JudgeAssignment @relation(fields: [assignmentId], references: [id])
+  items      ScoreItem[]
+
+  @@unique([judgeId, projectId])
+  @@index([projectId])
+}
+
+model ScoreItem {
+  id          String @id @default(cuid())
+  scoreId     String
+  criterionId String
+  value       Float  @default(0)
+
+  score     Score     @relation(fields: [scoreId], references: [id], onDelete: Cascade)
+  criterion Criterion @relation(fields: [criterionId], references: [id])
+
+  @@unique([scoreId, criterionId])
+}
+
+model JudgeInvite {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique @default(cuid())
+  eventId   String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([email])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityId   String
+  entityType String
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityId])
+}

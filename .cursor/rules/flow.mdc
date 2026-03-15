@@ -3,7 +3,7 @@ description: Complete end-to-end user flow for SciJudge. Read this before buildi
 globs: ["**/*.ts", "**/*.tsx"]
 ---
 
-# SciJudge — End-to-End App Flow
+# YSK — End-to-End App Flow
 
 Before building any feature, understand where it sits in this flow. Every page, action, and component maps to one of these steps.
 

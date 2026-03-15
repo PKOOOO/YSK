@@ -3,7 +3,7 @@ description: Project overview, tech stack, folder structure, and global coding c
 globs: ["**/*.ts", "**/*.tsx"]
 ---
 
-# SciJudge — Science Fair Congress Judging System
+# YSK— Science Fair Congress Judging System
 
 ## What this app is
 A multi-role web app for managing science fair events. Admins create events, set up categories/criteria, and manage judges. Teachers submit projects on behalf of their schools (no login). Judges log in and score assigned projects via sliders. One codebase, one deployment, one URL — no separate apps.

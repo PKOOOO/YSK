@@ -1,3 +1,9 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+onlyBuiltDependencies:
+  - "@clerk/shared"
+  - "@prisma/engines"
+  - msgpackr-extract
+  - prisma

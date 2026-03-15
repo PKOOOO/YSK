@@ -1,0 +1,1 @@
+@clerk/shared\n@prisma/engines\nmsgpackr-extract\nprisma
