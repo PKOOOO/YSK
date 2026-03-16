@@ -7,7 +7,7 @@ import { PlusCircle } from "lucide-react"
 export default async function CategoriesPage() {
   await requireAdmin()
 
-  const activeEvent = await prisma.event.findFirst({
+  const activeEvent = await (prisma.event.findFirst as any)({
     where: { status: "ACTIVE" },
     orderBy: { createdAt: "desc" },
     include: {
@@ -19,7 +19,18 @@ export default async function CategoriesPage() {
         orderBy: { name: "asc" },
       },
     },
-  })
+  }) as {
+    id: string
+    name: string
+    categories: Array<{
+      id: string
+      name: string
+      color: string
+      schoolLevel: "JSS" | "SENIOR"
+      criteria: Array<{ id: string; name: string; description: string | null; maxScore: number; order: number }>
+      _count: { projects: number }
+    }>
+  } | null
 
   if (!activeEvent) {
     return (
