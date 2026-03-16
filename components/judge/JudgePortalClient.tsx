@@ -1,9 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ClipboardList } from "lucide-react"
+import { toast } from "sonner"
+import { ClipboardList, Flag, Loader2 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { flagConflict } from "@/app/actions/judges"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +36,7 @@ type FilterTab = "all" | "pending" | "scored"
 interface Props {
   judgeName: string
   projects: ProjectCard[]
+  anonymousJudging: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -40,7 +50,6 @@ function getInitials(name: string) {
     .toUpperCase()
 }
 
-// Deterministic color from school name
 const SWATCH = [
   "#f472b6", "#3b82f6", "#10b981", "#f59e0b",
   "#8b5cf6", "#ef4444", "#0ea5e9", "#14b8a6",
@@ -53,33 +62,42 @@ function swatchFor(str: string) {
 
 // ─── Single Project Card ──────────────────────────────────────────────────────
 
-function ProjectCardItem({ project, onClick }: { project: ProjectCard; onClick: () => void }) {
-  const initials = getInitials(project.schoolName)
-  const avatarColor = swatchFor(project.schoolName)
+function ProjectCardItem({
+  project,
+  onClick,
+  onFlagConflict,
+  anonymousJudging,
+}: {
+  project: ProjectCard
+  onClick: () => void
+  onFlagConflict: () => void
+  anonymousJudging: boolean
+}) {
+  const displayName = anonymousJudging
+    ? project.projectCode ?? "Anonymous"
+    : project.schoolName
+  const initials = getInitials(displayName)
+  const avatarColor = swatchFor(displayName)
 
   return (
-    <button
-      onClick={onClick}
-      className="bg-white border border-black rounded-lg overflow-hidden flex flex-col w-full text-left h-full hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all"
-    >
-      {/* Color banner */}
-      <div
-        className="h-24 w-full flex items-center justify-center flex-shrink-0"
+    <div className="bg-white border border-black rounded-lg overflow-hidden flex flex-col w-full h-full hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all">
+      {/* Color banner — clickable */}
+      <button
+        onClick={onClick}
+        className="h-24 w-full flex items-center justify-center flex-shrink-0 text-left"
         style={{ backgroundColor: project.categoryColor }}
       >
         <span className="text-white font-bold text-sm px-4 text-center leading-tight drop-shadow-sm">
           {project.categoryName}
         </span>
-      </div>
+      </button>
 
-      {/* Content */}
-      <div className="flex flex-col gap-3 p-4 flex-1">
-        {/* Title */}
+      {/* Content — clickable */}
+      <button onClick={onClick} className="flex flex-col gap-3 p-4 flex-1 text-left w-full">
         <p className="text-base font-semibold leading-snug line-clamp-2">
           {project.title}
         </p>
 
-        {/* School + teacher */}
         <div className="flex items-center gap-2">
           <div
             className="size-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 border border-black"
@@ -88,12 +106,13 @@ function ProjectCardItem({ project, onClick }: { project: ProjectCard; onClick: 
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-medium truncate">{project.schoolName}</p>
-            <p className="text-xs text-muted-foreground truncate">{project.teacherName}</p>
+            <p className="text-xs font-medium truncate">{displayName}</p>
+            {!anonymousJudging && (
+              <p className="text-xs text-muted-foreground truncate">{project.teacherName}</p>
+            )}
           </div>
         </div>
 
-        {/* Badges row */}
         <div className="flex items-center gap-2 flex-wrap mt-auto pt-1">
           <span
             className={cn(
@@ -116,16 +135,34 @@ function ProjectCardItem({ project, onClick }: { project: ProjectCard; onClick: 
             </span>
           )}
         </div>
-      </div>
-    </button>
+      </button>
+
+      {/* Card footer with Flag Conflict button — only for unscored projects */}
+      {!project.scored && (
+        <div className="px-4 pb-3 pt-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onFlagConflict()
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border rounded-md bg-white text-muted-foreground hover:text-red-600 hover:border-red-400 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
+          >
+            <Flag className="size-3" />
+            Flag Conflict
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export function JudgePortalClient({ judgeName, projects }: Props) {
+export function JudgePortalClient({ judgeName, projects, anonymousJudging }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<FilterTab>("all")
+  const [conflictTarget, setConflictTarget] = useState<ProjectCard | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   const filtered = projects.filter((p) => {
     if (tab === "pending") return !p.scored
@@ -142,6 +179,20 @@ export function JudgePortalClient({ judgeName, projects }: Props) {
     { key: "scored", label: "Scored", count: scoredCount },
   ]
 
+  function handleFlagConflict() {
+    if (!conflictTarget) return
+    startTransition(async () => {
+      const res = await flagConflict(conflictTarget.assignmentId)
+      if (res.success) {
+        toast.success("Conflict flagged — project has been unassigned from you.")
+        setConflictTarget(null)
+        router.refresh()
+      } else {
+        toast.error(res.error ?? "Failed to flag conflict")
+      }
+    })
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* ── Header ── */}
@@ -153,7 +204,6 @@ export function JudgePortalClient({ judgeName, projects }: Props) {
           </p>
         </div>
 
-        {/* Count badge */}
         <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-black text-white text-sm font-bold rounded-full border border-black">
           <ClipboardList className="size-3.5" />
           {projects.length} project{projects.length !== 1 ? "s" : ""}
@@ -226,10 +276,49 @@ export function JudgePortalClient({ judgeName, projects }: Props) {
               key={project.assignmentId}
               project={project}
               onClick={() => router.push(`/judge/score/${project.projectId}`)}
+              onFlagConflict={() => setConflictTarget(project)}
+              anonymousJudging={anonymousJudging}
             />
           ))}
         </div>
       )}
+
+      {/* ── Conflict Confirmation Dialog ── */}
+      <Dialog open={!!conflictTarget} onOpenChange={(open) => !open && setConflictTarget(null)}>
+        <DialogContent className="max-w-sm border border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Flag Conflict of Interest?</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              This will permanently unassign{" "}
+              <strong>{conflictTarget?.title}</strong> from you. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              onClick={() => setConflictTarget(null)}
+              disabled={isPending}
+              className="px-4 py-2 text-sm font-semibold border border-black rounded bg-white hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleFlagConflict}
+              disabled={isPending}
+              className="px-5 py-2 text-sm font-bold bg-red-600 text-white border border-red-600 rounded hover:bg-red-700 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin inline mr-1.5" />
+                  Flagging…
+                </>
+              ) : (
+                "Flag & Unassign"
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

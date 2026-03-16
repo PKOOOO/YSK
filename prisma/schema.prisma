@@ -75,9 +75,15 @@ model Event {
   judgingMode   JudgingMode
   status        EventStatus @default(DRAFT)
   description   String?
-  resultsPublic Boolean     @default(false)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  resultsPublic       Boolean     @default(false)
+  anonymousJudging    Boolean     @default(false)
+  requireComments     Boolean     @default(false)
+  allowMultipleJudges Boolean     @default(true)
+  allowSubmissions    Boolean     @default(true)
+  submissionDeadline  DateTime?
+  showLiveScores      Boolean     @default(true)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
   categories Category[]
   projects   Project[]

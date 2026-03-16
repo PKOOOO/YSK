@@ -30,6 +30,7 @@ export async function saveScore(input: unknown) {
         project: {
           include: {
             category: { include: { criteria: { orderBy: { order: "asc" } } } },
+            event: { select: { status: true } },
           },
         },
       },
@@ -37,6 +38,10 @@ export async function saveScore(input: unknown) {
 
     if (!assignment || assignment.judgeId !== judge.id) {
       return { success: false as const, error: "Assignment not found or unauthorized" }
+    }
+
+    if (assignment.project.event.status === "CLOSED" && data.status === "SUBMITTED") {
+      return { success: false as const, error: "This event is closed. Scores can no longer be submitted." }
     }
 
     // Build a map of criterionId -> value for quick lookup
@@ -110,6 +115,17 @@ export async function saveScore(input: unknown) {
 
     revalidatePath("/judge")
     revalidatePath(`/judge/score/${assignment.projectId}`)
+
+    await prisma.auditLog.create({
+      data: {
+        userId: judge.id,
+        action: data.status === "SUBMITTED" ? "SCORE_SUBMITTED" : "SCORE_DRAFT",
+        entityId: score.id,
+        entityType: "Score",
+        meta: { projectId: assignment.projectId, totalScore, status: data.status },
+      },
+    })
+
     return { success: true as const, data: { scoreId: score.id, status: data.status } }
   } catch (error) {
     return {

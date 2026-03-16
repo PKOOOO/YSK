@@ -18,6 +18,7 @@ export default async function JudgePage() {
           schoolLevel: true,
           aiSummary: true,
           abstract: true,
+          eventId: true,
           category: {
             select: { name: true, color: true },
           },
@@ -29,6 +30,16 @@ export default async function JudgePage() {
     },
     orderBy: { assignedAt: "asc" },
   })
+
+  // Fetch event settings for anonymous mode (use first project's eventId)
+  let anonymousJudging = false
+  if (assignments.length > 0) {
+    const event = await prisma.event.findUnique({
+      where: { id: assignments[0].project.eventId },
+      select: { anonymousJudging: true },
+    })
+    anonymousJudging = event?.anonymousJudging ?? false
+  }
 
   const projects = assignments.map((a) => ({
     assignmentId: a.id,
@@ -47,7 +58,11 @@ export default async function JudgePage() {
 
   return (
     <div className="min-h-screen bg-[#F4F4F0]">
-      <JudgePortalClient judgeName={judge.name} projects={projects} />
+      <JudgePortalClient
+        judgeName={judge.name}
+        projects={projects}
+        anonymousJudging={anonymousJudging}
+      />
     </div>
   )
 }

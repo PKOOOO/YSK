@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
-import { requireAdmin } from "@/lib/auth"
+import { requireAdmin, requireJudge } from "@/lib/auth"
 import { auth } from "@clerk/nextjs/server"
 import { Resend } from "resend"
 
@@ -163,6 +163,39 @@ export async function removeJudgeFromEvent(input: unknown) {
     return {
       success: false as const,
       error: error instanceof Error ? error.message : "Failed to remove judge",
+    }
+  }
+}
+
+// ─── Flag Conflict of Interest ─────────────────────────────────────────────────
+
+export async function flagConflict(assignmentId: string) {
+  try {
+    const judge = await requireJudge()
+
+    const assignment = await prisma.judgeAssignment.findUnique({
+      where: { id: assignmentId },
+    })
+
+    if (!assignment || assignment.judgeId !== judge.id) {
+      return { success: false as const, error: "Assignment not found or unauthorized" }
+    }
+
+    await prisma.judgeAssignment.update({
+      where: { id: assignmentId },
+      data: { conflicted: true },
+    })
+
+    await prisma.judgeAssignment.delete({
+      where: { id: assignmentId },
+    })
+
+    revalidatePath("/judge")
+    return { success: true as const }
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : "Failed to flag conflict",
     }
   }
 }

@@ -4,7 +4,7 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
-import { EventType, JudgingMode } from "@prisma/client"
+import { EventType, JudgingMode, EventStatus } from "@prisma/client"
 
 const CreateEventSchema = z.object({
   name: z.string().min(1, "Event name is required").max(100),
@@ -15,7 +15,14 @@ const CreateEventSchema = z.object({
 const UpdateEventSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().optional(),
+  status: z.nativeEnum(EventStatus).optional(),
   resultsPublic: z.boolean().optional(),
+  anonymousJudging: z.boolean().optional(),
+  requireComments: z.boolean().optional(),
+  allowMultipleJudges: z.boolean().optional(),
+  allowSubmissions: z.boolean().optional(),
+  submissionDeadline: z.coerce.date().nullable().optional(),
+  showLiveScores: z.boolean().optional(),
 })
 
 export async function createEvent(input: unknown) {
@@ -39,6 +46,7 @@ export async function updateEvent(id: string, input: unknown) {
     const data = UpdateEventSchema.parse(input)
     const event = await prisma.event.update({ where: { id }, data })
     revalidatePath("/events")
+    revalidatePath("/dashboard/settings")
     return { success: true as const, data: event }
   } catch (error) {
     return {
@@ -53,6 +61,7 @@ export async function deleteEvent(id: string) {
     await requireAdmin()
     await prisma.event.delete({ where: { id } })
     revalidatePath("/events")
+    revalidatePath("/dashboard/settings")
     return { success: true as const }
   } catch (error) {
     return {
