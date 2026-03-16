@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateObject } from "ai"
-import { FAST_MODEL } from "@/lib/ai"
+import { SMART_MODEL } from "@/lib/ai"
 import { z } from "zod"
+import { auth } from "@clerk/nextjs/server"
 
 const RequestSchema = z.object({
   title: z.string(),
@@ -28,6 +29,9 @@ const SuggestionSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth()
+  if (!userId) return new Response("Unauthorized", { status: 401 })
+
   try {
     const body = await req.json()
     const data = RequestSchema.parse(body)
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
       .join("\n")
 
     const { object } = await generateObject({
-      model: FAST_MODEL,
+      model: SMART_MODEL,
       schema: SuggestionSchema,
       prompt: `You are a science fair judge assistant. Based on the project information below, suggest scores for each criterion. Be conservative — when unsure, suggest a middle score. Provide a brief justification for each suggestion.
 

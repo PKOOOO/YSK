@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "cleanup": "tsx prisma/cleanup.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -18,12 +19,16 @@
     "ai": "^6.0.116",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
     "lucide-react": "^0.577.0",
+    "mammoth": "^1.12.0",
     "next": "16.1.6",
+    "next-pwa": "^5.6.0",
     "next-themes": "^0.4.6",
     "prisma": "^7.5.0",
     "react": "19.2.3",
+    "react-day-picker": "^9.14.0",
     "react-dom": "19.2.3",
     "recharts": "^3.8.0",
     "resend": "^6.9.3",

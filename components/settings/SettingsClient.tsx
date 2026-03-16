@@ -55,9 +55,8 @@ function SectionCard({
 }) {
   return (
     <div
-      className={`bg-white rounded-md border overflow-hidden ${
-        danger ? "border-red-600" : ""
-      }`}
+      className={`bg-white rounded-md border overflow-hidden ${danger ? "border-red-600" : ""
+        }`}
     >
       <div className={`p-4 border-b ${danger ? "border-red-600" : ""}`}>
         <h2 className="text-lg font-medium">{title}</h2>
@@ -270,7 +269,7 @@ export function SettingsClient({ event }: { event: EventData }) {
           </div>
           <div className="flex flex-col gap-2">
             <Label className="text-base font-medium">Event Status</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(v) => { if (v) setStatus(v) }}>
               <SelectTrigger className="h-12 bg-white font-medium md:text-base w-full max-w-xs">
                 <SelectValue />
               </SelectTrigger>
@@ -380,7 +379,7 @@ export function SettingsClient({ event }: { event: EventData }) {
                 </p>
               </div>
               <Dialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
-                <DialogTrigger asChild>
+                <DialogTrigger>
                   <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md border border-red-600 hover:bg-red-700 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all">
                     <Lock className="size-3.5" />
                     Close Event
@@ -424,7 +423,7 @@ export function SettingsClient({ event }: { event: EventData }) {
                 </p>
               </div>
               <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <DialogTrigger asChild>
+                <DialogTrigger>
                   <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md border border-red-600 hover:bg-red-700 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[4px] hover:-translate-y-[4px] transition-all">
                     <Trash2 className="size-3.5" />
                     Delete Event

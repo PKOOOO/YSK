@@ -199,3 +199,61 @@ export async function flagConflict(assignmentId: string) {
     }
   }
 }
+
+export async function getJudgesByEvent(eventId: string) {
+  await requireAdmin()
+
+  const judges = await prisma.user.findMany({
+    where: {
+      role: "JUDGE",
+      judgeAssignments: { some: { project: { eventId } } },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      judgeAssignments: {
+        where: { project: { eventId } },
+        select: {
+          id: true,
+          projectId: true,
+          conflicted: true,
+          score: { select: { status: true } },
+        },
+      },
+    },
+  })
+
+  return judges.map((j) => {
+    const assigned = j.judgeAssignments.length
+    const scored = j.judgeAssignments.filter(
+      (a) => a.score?.status === "SUBMITTED"
+    ).length
+    return {
+      id: j.id,
+      name: j.name,
+      email: j.email,
+      assigned,
+      scored,
+      percent: assigned > 0 ? Math.round((scored / assigned) * 100) : 0,
+    }
+  })
+}
+
+export async function getJudgeProgress(judgeId: string, eventId: string) {
+  const assignments = await prisma.judgeAssignment.findMany({
+    where: { judgeId, project: { eventId } },
+    include: { score: { select: { status: true } } },
+  })
+
+  const assigned = assignments.length
+  const scored = assignments.filter(
+    (a) => a.score?.status === "SUBMITTED"
+  ).length
+
+  return {
+    assigned,
+    scored,
+    percent: assigned > 0 ? Math.round((scored / assigned) * 100) : 0,
+  }
+}

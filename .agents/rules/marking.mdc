@@ -8,7 +8,7 @@ globs: ["app/actions/scoring.ts", "app/actions/categories.ts", "components/scori
 This app implements the Kenya Science and Engineering Fair (KSEF) judging system.
 There are TWO separate marking schemes depending on the school level:
 - **JSS** (Junior Secondary School) — total 65 marks
-- **Senior School / Non-Robotics** — total 75 marks
+- **Senior School / Non-Robotics** — total 80 marks
 
 Both schemes are divided into THREE parts judged across TWO sessions.
 
@@ -110,7 +110,7 @@ Both schemes are divided into THREE parts judged across TWO sessions.
 
 ---
 
-## SENIOR / NON-ROBOTICS MARKING SCHEME (Total: 75 marks)
+## SENIOR / NON-ROBOTICS MARKING SCHEME (Total: 80 marks)
 
 ### PART A — Written Communication (Session 1) — Max: 30 marks
 | # | Criterion | Max Score |
@@ -150,8 +150,8 @@ Both schemes are divided into THREE parts judged across TWO sessions.
 | 10 | Authenticity | 2 |
 | **TOTAL** | | **15** |
 
-### PART C — Scientific Thought, Method and Creativity (Session 2) — Max: 30 marks
-(Same structure as JSS Part C but max total is 30 not 35)
+### PART C — Scientific Thought, Method and Creativity (Session 2) — Max: 35 marks
+(Identical criteria to JSS Part C — both sum to 35 marks)
 | # | Criterion | Max Score |
 |---|---|---|
 | 1 | Statement of the problem | 2 |
@@ -169,7 +169,7 @@ Both schemes are divided into THREE parts judged across TWO sessions.
 | 13 | Skill / workmanship | 2 |
 | **TOTAL** | | **35** |
 
-**Senior Grand Total: 30 + 15 + 30 = 75 marks**
+**Senior Grand Total: 30 + 15 + 35 = 80 marks**
 
 ---
 

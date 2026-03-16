@@ -134,8 +134,18 @@ export async function getEventById(id: string) {
 export async function setEventStatus(id: string, status: "DRAFT" | "ACTIVE" | "CLOSED" | "ARCHIVED") {
   try {
     await requireAdmin()
+
+    // When activating an event, deactivate all other active events first
+    if (status === "ACTIVE") {
+      await prisma.event.updateMany({
+        where: { status: "ACTIVE", id: { not: id } },
+        data: { status: "DRAFT" },
+      })
+    }
+
     const event = await prisma.event.update({ where: { id }, data: { status } })
     revalidatePath("/events")
+    revalidatePath("/dashboard", "layout")
     return { success: true as const, data: event }
   } catch (error) {
     return {

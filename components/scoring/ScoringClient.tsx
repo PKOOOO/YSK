@@ -467,7 +467,7 @@ export function ScoringClient({
           {files.length > 0 && (
             <div className="bg-white border border-black rounded-lg overflow-hidden">
               <div className="p-4 border-b border-black">
-                <h3 className="text-sm font-bold">Project Files</h3>
+                <h3 className="text-sm font-bold">Research Documents</h3>
               </div>
               <div className="p-4 flex flex-col gap-3">
                 {/* Image thumbnails */}
@@ -501,7 +501,7 @@ export function ScoringClient({
                 {files.filter((f) => f.type === "application/pdf").length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <FileText className="size-3.5" /> Documents
+                      <FileText className="size-3.5" /> PDF Documents
                     </p>
                     <div className="flex flex-col gap-1.5">
                       {files
@@ -524,6 +524,38 @@ export function ScoringClient({
                         ))}
                     </div>
                   </div>
+                )}
+                {/* DOCX links */}
+                {files.filter((f) => f.type.includes("wordprocessingml") || f.name.toLowerCase().endsWith(".docx")).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <FileText className="size-3.5" /> Word Documents
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {files
+                        .filter((f) => f.type.includes("wordprocessingml") || f.name.toLowerCase().endsWith(".docx"))
+                        .map((f) => (
+                          <a
+                            key={f.id}
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-black bg-[#F4F4F0] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
+                          >
+                            <FileText className="size-4 text-blue-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{f.name}</p>
+                              <p className="text-[11px] text-muted-foreground">{formatFileSize(f.size)} · Word Document</p>
+                            </div>
+                            <Download className="size-3.5 text-muted-foreground flex-shrink-0" />
+                          </a>
+                        ))}
+                    </div>
+                  </div>
+                )}
+                {/* Empty state */}
+                {files.filter((f) => !f.type.startsWith("image/")).length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">No documents uploaded</p>
                 )}
               </div>
             </div>

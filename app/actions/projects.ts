@@ -177,6 +177,18 @@ export async function saveProjectFiles(input: unknown) {
 export async function deleteProject(id: string) {
   try {
     await requireAdmin()
+
+    const files = await prisma.projectFile.findMany({
+      where: { projectId: id },
+      select: { key: true },
+    })
+
+    if (files.length > 0) {
+      const { UTApi } = await import("uploadthing/server")
+      const utapi = new UTApi()
+      await utapi.deleteFiles(files.map((f) => f.key))
+    }
+
     await prisma.project.delete({ where: { id } })
     revalidatePath("/dashboard")
     return { success: true as const }

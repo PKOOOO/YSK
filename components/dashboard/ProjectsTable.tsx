@@ -12,6 +12,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { FileText, Download, Sparkles, User, School } from "lucide-react"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 export type ProjectFile = {
   id: string
@@ -42,7 +51,30 @@ interface Props {
   maxScore: number
 }
 
+const PAGE_SIZE = 8
+
 export function ProjectsTable({ projects, maxScore }: Props) {
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(projects.length / PAGE_SIZE))
+  const pageProjects = projects.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // Build the page numbers to show (always show first, last, current ±1, with ellipsis)
+  function getPageItems() {
+    const items: (number | "ellipsis")[] = []
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) items.push(i)
+      return items
+    }
+    items.push(1)
+    if (page > 3) items.push("ellipsis")
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+      items.push(i)
+    }
+    if (page < totalPages - 2) items.push("ellipsis")
+    items.push(totalPages)
+    return items
+  }
+
   return (
     <div className="bg-white rounded-md border overflow-hidden">
       <div className="p-4 border-b flex items-center justify-between">
@@ -57,36 +89,83 @@ export function ProjectsTable({ projects, maxScore }: Props) {
           <p className="text-sm text-muted-foreground">No projects submitted yet</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-[#F4F4F0]">
-                {[
-                  "School Name",
-                  "Teacher",
-                  "Category",
-                  "Level",
-                  "Assigned Judge",
-                  "Score",
-                  "Status",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap last:text-right"
-                  >
-                    {h}
-                  </th>
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-[#F4F4F0]">
+                  {[
+                    "School Name",
+                    "Teacher",
+                    "Category",
+                    "Level",
+                    "Assigned Judge",
+                    "Score",
+                    "Status",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap last:text-right"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {pageProjects.map((p) => (
+                  <ProjectTableRow key={p.id} project={p} maxScore={maxScore} />
                 ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {projects.map((p) => (
-                <ProjectTableRow key={p.id} project={p} maxScore={maxScore} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="border-t px-4 py-3">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)) }}
+                      aria-disabled={page === 1}
+                      className={page === 1 ? "pointer-events-none opacity-40" : ""}
+                    />
+                  </PaginationItem>
+
+                  {getPageItems().map((item, idx) =>
+                    item === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${idx}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink
+                          href="#"
+                          isActive={item === page}
+                          onClick={(e) => { e.preventDefault(); setPage(item) }}
+                          className={item === page ? "bg-black text-white hover:bg-black hover:text-white" : ""}
+                        >
+                          {item}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)) }}
+                      aria-disabled={page === totalPages}
+                      className={page === totalPages ? "pointer-events-none opacity-40" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -114,7 +193,6 @@ function ProjectTableRow({
   const assignedJudge = p.assignments[0]?.judge?.name ?? null
 
   const imageFiles = p.files.filter((f) => f.type.startsWith("image/"))
-  const otherFiles = p.files.filter((f) => !f.type.startsWith("image/"))
 
   function handleApprove(e?: React.MouseEvent) {
     e?.stopPropagation()
@@ -389,30 +467,56 @@ function ProjectTableRow({
                     </div>
                   )}
 
-                  {/* Other files (PDFs, etc.) */}
-                  {otherFiles.length > 0 && (
+                  {/* PDF files */}
+                  {p.files.filter((f) => f.type === "application/pdf").length > 0 && (
+                    <div className="flex flex-col gap-2 mb-2">
+                      {p.files
+                        .filter((f) => f.type === "application/pdf")
+                        .map((f) => (
+                          <a
+                            key={f.id}
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-3 p-3 border rounded-md hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all group"
+                          >
+                            <div className="size-9 rounded border bg-[#F4F4F0] flex items-center justify-center shrink-0">
+                              <FileText className="size-4 text-red-500" />
+                            </div>
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{f.name}</p>
+                              <p className="text-xs text-muted-foreground">PDF · {formatBytes(f.size)}</p>
+                            </div>
+                            <Download className="size-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                          </a>
+                        ))}
+                    </div>
+                  )}
+                  {/* DOCX files */}
+                  {p.files.filter((f) => f.type.includes("wordprocessingml") || f.name.toLowerCase().endsWith(".docx")).length > 0 && (
                     <div className="flex flex-col gap-2">
-                      {otherFiles.map((f) => (
-                        <a
-                          key={f.id}
-                          href={f.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-3 p-3 border rounded-md hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all group"
-                        >
-                          <div className="size-9 rounded border bg-[#F4F4F0] flex items-center justify-center shrink-0">
-                            <FileText className="size-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex flex-col flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{f.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {f.type} · {formatBytes(f.size)}
-                            </p>
-                          </div>
-                          <Download className="size-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-                        </a>
-                      ))}
+                      {p.files
+                        .filter((f) => f.type.includes("wordprocessingml") || f.name.toLowerCase().endsWith(".docx"))
+                        .map((f) => (
+                          <a
+                            key={f.id}
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-3 p-3 border rounded-md hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all group"
+                          >
+                            <div className="size-9 rounded border bg-[#F4F4F0] flex items-center justify-center shrink-0">
+                              <FileText className="size-4 text-blue-500" />
+                            </div>
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{f.name}</p>
+                              <p className="text-xs text-muted-foreground">Word Document · {formatBytes(f.size)}</p>
+                            </div>
+                            <Download className="size-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                          </a>
+                        ))}
                     </div>
                   )}
                 </div>

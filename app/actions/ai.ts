@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateText, FAST_MODEL, SMART_MODEL } from "@/lib/ai"
 import { extractPdfText } from "@/lib/pdf"
+import { extractDocxText } from "@/lib/docx"
 
 export async function generateAbstractSummary(projectId: string) {
   console.log("[AI] generateAbstractSummary called for projectId:", projectId)
@@ -42,10 +43,28 @@ export async function generateAbstractSummary(projectId: string) {
         console.log("[AI] PDF text extracted, length:", documentContent.length)
       } catch (pdfError) {
         console.error("[AI] PDF extraction failed:", pdfError)
-        // Fall through to title-only fallback
+        // Fall through to docx fallback
       }
-    } else {
-      console.log("[AI] No PDF file found in project files")
+    }
+
+    // DOCX fallback if no PDF or PDF extraction failed
+    if (!documentContent) {
+      const docxFile = project.files.find(
+        (f) =>
+          f.type.includes("wordprocessingml") ||
+          f.name.toLowerCase().endsWith(".docx")
+      )
+      if (docxFile) {
+        console.log("[AI] Found DOCX file:", docxFile.name, "- extracting text...")
+        try {
+          documentContent = await extractDocxText(docxFile.url)
+          console.log("[AI] DOCX text extracted, length:", documentContent.length)
+        } catch (docxError) {
+          console.error("[AI] DOCX extraction failed:", docxError)
+        }
+      } else {
+        console.log("[AI] No PDF or DOCX file found in project files")
+      }
     }
 
     let prompt: string
@@ -147,7 +166,84 @@ Write 3-4 paragraphs: acknowledge their work, highlight strengths based on high 
 export async function generateResultsReport(eventId: string) {
   try {
     await requireAdmin()
-    return { success: true as const, data: "" }
+
+    const event = await prisma.event.findUniqueOrThrow({
+      where: { id: eventId },
+      include: {
+        projects: {
+          include: {
+            category: { select: { name: true } },
+            scores: {
+              where: { status: "SUBMITTED" },
+              select: {
+                totalScore: true,
+                partAScore: true,
+                partBScore: true,
+                partCScore: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    const scoredProjects = event.projects
+      .filter((p) => p.scores.length > 0)
+      .map((p) => {
+        const count = p.scores.length
+        const avg = (field: "totalScore" | "partAScore" | "partBScore" | "partCScore") =>
+          p.scores.reduce((sum: number, s) => sum + s[field], 0) / count
+        return {
+          title: p.title,
+          schoolName: p.schoolName,
+          schoolLevel: p.schoolLevel,
+          category: p.category.name,
+          avgTotal: avg("totalScore"),
+          avgPartA: avg("partAScore"),
+          avgPartB: avg("partBScore"),
+          avgPartC: avg("partCScore"),
+          judgeCount: count,
+          maxScore: p.schoolLevel === "JSS" ? 65 : 80,
+        }
+      })
+      .sort((a, b) => b.avgTotal - a.avgTotal)
+
+    const top3 = scoredProjects.slice(0, 3)
+    const categories = [...new Set(scoredProjects.map((p) => p.category))]
+
+    const categoryBreakdown = categories.map((cat) => {
+      const catProjects = scoredProjects.filter((p) => p.category === cat)
+      const topProject = catProjects[0]
+      return `- ${cat}: ${catProjects.length} projects. Top: "${topProject?.title}" from ${topProject?.schoolName} (${topProject?.avgTotal.toFixed(1)} pts)`
+    }).join("\n")
+
+    const topPerformers = top3.map((p, i) =>
+      `${i + 1}. "${p.title}" from ${p.schoolName} — ${p.avgTotal.toFixed(1)}/${p.maxScore} (${p.category}, ${p.schoolLevel})`
+    ).join("\n")
+
+    const { text } = await generateText({
+      model: SMART_MODEL,
+      prompt: `Write a professional narrative report for a science fair event. Cover: event summary, category highlights, top performers, and overall observations.
+
+Event: ${event.name}
+Total Projects: ${event.projects.length}
+Scored Projects: ${scoredProjects.length}
+
+Category Breakdown:
+${categoryBreakdown}
+
+Top 3 Overall:
+${topPerformers}
+
+Write 4-6 paragraphs. Tone: formal but warm, suitable for sharing with schools and stakeholders. Mention specific projects and schools by name. Include observations about scoring patterns across categories.`,
+    })
+
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { aiReport: text },
+    })
+
+    return { success: true as const, data: text }
   } catch (error) {
     return {
       success: false as const,

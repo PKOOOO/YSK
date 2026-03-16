@@ -149,8 +149,8 @@ function DetailDialog({
     pct(row.finalScore, row.maxScore) >= 70
       ? "bg-green-400"
       : pct(row.finalScore, row.maxScore) >= 40
-      ? "bg-amber-400"
-      : "bg-pink-400"
+        ? "bg-amber-400"
+        : "bg-pink-400"
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -341,7 +341,7 @@ export function PublicResultsClient({
                   Top {top3.length}
                 </h2>
 
-                <div className="flex items-end gap-3 justify-center sm:gap-4">
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:gap-4 justify-center">
                   {podiumSlots.map((row, slotIdx) => {
                     if (!row) {
                       return <div key={`empty-${slotIdx}`} className="flex-1 max-w-[220px]" />
@@ -386,8 +386,8 @@ export function PublicResultsClient({
                     progress >= 70
                       ? "bg-green-400"
                       : progress >= 40
-                      ? "bg-amber-400"
-                      : "bg-pink-400"
+                        ? "bg-amber-400"
+                        : "bg-pink-400"
 
                   return (
                     <button

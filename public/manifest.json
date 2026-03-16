@@ -1,0 +1,14 @@
+{
+  "name": "YSK Science Fair",
+  "short_name": "YSK",
+  "description": "Kenya Science and Engineering Fair Judging Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F4F0",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

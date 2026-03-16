@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { createProject, saveProjectFiles } from "@/app/actions/projects"
+import { createProject } from "@/app/actions/projects"
 import { generateAbstractSummary } from "@/app/actions/ai"
 import { uploadFiles } from "@/lib/uploadthing"
 import { CategorySuggester } from "@/components/ai/CategorySuggester"
@@ -85,6 +85,13 @@ function isPdfFile(file: File) {
   return file.type === "application/pdf"
 }
 
+function isDocxFile(file: File) {
+  return (
+    file.type.includes("wordprocessingml") ||
+    file.name.toLowerCase().endsWith(".docx")
+  )
+}
+
 const STEPS = [
   { label: "School", icon: School },
   { label: "Project", icon: FileEdit },
@@ -143,7 +150,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const hasPdf = files.some(isPdfFile)
+  const hasDocument = files.some((f) => isPdfFile(f) || isDocxFile(f))
 
   const addFiles = useCallback((incoming: FileList | File[]) => {
     const arr = Array.from(incoming)
@@ -151,14 +158,14 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
       const next = [...prev]
 
       for (const f of arr) {
-        const currentPdfs = next.filter(isPdfFile).length
         const currentImages = next.filter(isImageFile).length
         const isDupe = next.some((x) => x.name === f.name && x.size === f.size)
         if (isDupe) continue
 
-        if (isPdfFile(f)) {
-          if (currentPdfs >= MAX_PDF_COUNT) {
-            toast.error(`Max ${MAX_PDF_COUNT} PDF files allowed`)
+        if (isPdfFile(f) || isDocxFile(f)) {
+          const currentDocs = next.filter((x) => isPdfFile(x) || isDocxFile(x)).length
+          if (currentDocs >= MAX_PDF_COUNT) {
+            toast.error(`Max ${MAX_PDF_COUNT} documents allowed`)
             continue
           }
           if (f.size > MAX_FILE_SIZE_PDF) {
@@ -210,7 +217,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
       const result = Step1Schema.safeParse({ schoolName, teacherName, teacherEmail })
       if (!result.success) {
         const fieldErrors: Record<string, string> = {}
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           fieldErrors[err.path[0] as string] = err.message
         })
         setErrors(fieldErrors)
@@ -222,7 +229,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
       const result = Step2Schema.safeParse({ title })
       if (!result.success) {
         const fieldErrors: Record<string, string> = {}
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           fieldErrors[err.path[0] as string] = err.message
         })
         setErrors(fieldErrors)
@@ -234,7 +241,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
       const result = Step3Schema.safeParse({ categoryId, schoolLevel })
       if (!result.success) {
         const fieldErrors: Record<string, string> = {}
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           fieldErrors[err.path[0] as string] = err.message
         })
         setErrors(fieldErrors)
@@ -243,8 +250,8 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
     }
 
     if (step === 4) {
-      if (!hasPdf) {
-        setErrors({ files: "At least one PDF research document is required" })
+      if (!hasDocument) {
+        setErrors({ files: "Please upload at least one PDF or Word document (.docx)" })
         return false
       }
     }
@@ -277,8 +284,8 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
       return
     }
 
-    if (!hasPdf) {
-      toast.error("At least one PDF research document is required")
+    if (!hasDocument) {
+      toast.error("Please upload at least one PDF or Word document (.docx)")
       return
     }
 
@@ -300,29 +307,13 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
     console.log("[submit] files.length:", files.length)
     if (files.length > 0) {
       try {
-        console.log("[submit] calling uploadFiles with projectId:", projectId)
-        const uploaded = await uploadFiles("projectFiles", {
+        await uploadFiles("projectFiles", {
           files,
           input: { projectId },
         })
-        console.log("[submit] uploadFiles returned:", JSON.stringify(uploaded, null, 2))
-
-        const fileRecords = uploaded.map((f: Record<string, unknown>) => ({
-          name: (f.name as string) ?? "",
-          url: ((f.ufsUrl ?? f.url ?? f.appUrl) as string) ?? "",
-          key: (f.key as string) ?? "",
-          size: (f.size as number) ?? 0,
-          type: (f.type as string) ?? "application/octet-stream",
-        }))
-        console.log("[submit] fileRecords to save:", JSON.stringify(fileRecords, null, 2))
-
-        const saveResult = await saveProjectFiles({ projectId, files: fileRecords })
-        console.log("[submit] saveProjectFiles result:", saveResult)
       } catch (err) {
-        console.error("[submit] upload/save error:", err)
-        toast.error(
-          "Files could not be uploaded, but your project was saved."
-        )
+        console.error("[submit] upload error:", err)
+        toast.error("Files could not be uploaded, but your project was saved.")
       }
     }
 
@@ -388,8 +379,8 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
                       isCompleted
                         ? "bg-black text-white"
                         : isActive
-                        ? "bg-pink-400 text-white"
-                        : "bg-muted text-muted-foreground"
+                          ? "bg-pink-400 text-white"
+                          : "bg-muted text-muted-foreground"
                     )}
                   >
                     {isCompleted ? <Check className="size-4" /> : stepNum}
@@ -432,8 +423,8 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
                     isActive
                       ? "w-8 bg-pink-400"
                       : isCompleted
-                      ? "w-6 bg-black"
-                      : "w-6 bg-muted"
+                        ? "w-6 bg-black"
+                        : "w-6 bg-muted"
                   )}
                 />
               )
@@ -616,7 +607,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
             <div>
               <h2 className="text-lg font-medium">Upload Files</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Upload your research document (PDF).
+                Upload your research document (PDF or Word .docx).
                 Our AI will automatically generate a project summary for judges.
               </p>
             </div>
@@ -624,7 +615,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
             <Field
               label="Research Document"
               error={errors.files}
-              hint="PDFs (max 16 MB, up to 5) and images (max 8 MB, up to 10)"
+              hint="PDF or DOCX (max 16 MB, up to 5) and images (max 8 MB, up to 10)"
               required
             >
               <div
@@ -637,15 +628,15 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
                   errors.files
                     ? "border-red-400 bg-red-50/30"
                     : dragging
-                    ? "border-pink-400 bg-pink-50"
-                    : "border-black hover:border-pink-400 hover:bg-pink-50/30"
+                      ? "border-pink-400 bg-pink-50"
+                      : "border-black hover:border-pink-400 hover:bg-pink-50/30"
                 )}
               >
                 <input
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept=".pdf,image/*"
+                  accept=".pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
                   className="hidden"
                   onChange={(e) => e.target.files && addFiles(e.target.files)}
                 />
@@ -657,7 +648,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
                   </span>
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  At least one PDF research document is required
+                  At least one PDF or .docx research document is required
                 </p>
               </div>
 
@@ -670,6 +661,8 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
                     >
                       {isPdfFile(file) ? (
                         <FileText className="size-4 text-red-400 shrink-0" />
+                      ) : isDocxFile(file) ? (
+                        <FileText className="size-4 text-blue-500 shrink-0" />
                       ) : (
                         <ImageIcon className="size-4 text-blue-400 shrink-0" />
                       )}
@@ -694,9 +687,9 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
                 </ul>
               )}
 
-              {!hasPdf && files.length > 0 && (
+              {!hasDocument && files.length > 0 && (
                 <p className="text-xs text-amber-600 mt-2">
-                  ⚠ You have uploaded images but no PDF. At least one PDF research document is required.
+                  ⚠ You have uploaded images but no research document. At least one PDF or .docx is required.
                 </p>
               )}
             </Field>
@@ -729,7 +722,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
               />
               <ReviewRow
                 label="Files"
-                value={files.length > 0 ? `${files.length} file${files.length > 1 ? "s" : ""} attached (${files.filter(isPdfFile).length} PDF)` : "No files"}
+                value={files.length > 0 ? `${files.length} file${files.length > 1 ? "s" : ""} attached (${files.filter((f) => isPdfFile(f) || isDocxFile(f)).length} document)` : "No files"}
                 onEdit={() => setStep(4)}
               />
             </div>
@@ -737,7 +730,7 @@ export function SubmitForm({ event, categories }: SubmitFormProps) {
             <div className="flex items-start gap-3 p-3 rounded-md border bg-blue-50 text-blue-800">
               <Sparkles className="size-4 shrink-0 mt-0.5" />
               <p className="text-sm">
-                After submission, our AI will read your PDF and generate a project summary for the judges automatically.
+                After submission, our AI will read your research document (PDF or .docx) and generate a project summary for the judges automatically.
               </p>
             </div>
           </div>

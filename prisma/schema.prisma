@@ -82,6 +82,7 @@ model Event {
   allowSubmissions    Boolean     @default(true)
   submissionDeadline  DateTime?
   showLiveScores      Boolean     @default(true)
+  aiReport            String?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 

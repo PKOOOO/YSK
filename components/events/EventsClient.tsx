@@ -20,7 +20,7 @@ export function EventsClient({ events }: EventsClientProps) {
         <h1 className="text-2xl font-medium">Events</h1>
         <Button
           onClick={() => setWizardOpen(true)}
-          variant="elevated"
+          variant="default"
           className="bg-black text-white hover:bg-pink-400 hover:text-primary"
         >
           <Plus className="size-4" />
@@ -37,7 +37,7 @@ export function EventsClient({ events }: EventsClientProps) {
           </p>
           <Button
             onClick={() => setWizardOpen(true)}
-            variant="elevated"
+            variant="default"
             className="bg-black text-white hover:bg-pink-400 hover:text-primary mt-2"
           >
             <Plus className="size-4" />

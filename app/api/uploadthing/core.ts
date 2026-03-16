@@ -8,6 +8,10 @@ export const ourFileRouter = {
   projectFiles: f({
     pdf: { maxFileSize: "16MB", maxFileCount: 5 },
     image: { maxFileSize: "8MB", maxFileCount: 10 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+      maxFileSize: "16MB",
+      maxFileCount: 5,
+    },
   })
     .input(z.object({ projectId: z.string() }))
     .middleware(async ({ input }) => {

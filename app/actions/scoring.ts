@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
-import { requireJudge } from "@/lib/auth"
+import { requireAdmin, requireJudge } from "@/lib/auth"
 import { ScoreStatus, JudgingSession } from "@prisma/client"
 
 const SaveScoreSchema = z.object({
@@ -133,4 +133,93 @@ export async function saveScore(input: unknown) {
       error: error instanceof Error ? error.message : "Failed to save score",
     }
   }
+}
+
+export async function resetScore(assignmentId: string) {
+  try {
+    await requireAdmin()
+    const assignment = await prisma.judgeAssignment.findUniqueOrThrow({
+      where: { id: assignmentId },
+      include: { score: true },
+    })
+
+    if (!assignment.score) {
+      return { success: false as const, error: "No score found for this assignment" }
+    }
+
+    const score = await prisma.score.update({
+      where: { id: assignment.score.id },
+      data: { status: "DRAFT", submittedAt: null },
+    })
+
+    revalidatePath("/dashboard")
+    revalidatePath("/judge")
+    return { success: true as const, data: score }
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : "Failed to reset score",
+    }
+  }
+}
+
+export async function getScoreByAssignment(assignmentId: string) {
+  return prisma.score.findUnique({
+    where: { assignmentId },
+    include: {
+      items: { include: { criterion: true }, orderBy: { criterion: { order: "asc" } } },
+      judge: { select: { id: true, name: true, email: true } },
+    },
+  })
+}
+
+export async function getLeaderboard(eventId: string, categoryId?: string) {
+  const projects = await prisma.project.findMany({
+    where: {
+      eventId,
+      ...(categoryId ? { categoryId } : {}),
+    },
+    include: {
+      category: { select: { id: true, name: true, color: true } },
+      scores: {
+        where: { status: ScoreStatus.SUBMITTED },
+        select: {
+          totalScore: true,
+          partAScore: true,
+          partBScore: true,
+          partCScore: true,
+        },
+      },
+    },
+  })
+
+  const scored = projects.filter((p) => p.scores.length > 0)
+
+  const withAvg = scored.map((p) => {
+    const count = p.scores.length
+    const avg = (field: "totalScore" | "partAScore" | "partBScore" | "partCScore") =>
+      p.scores.reduce((sum: number, s) => sum + s[field], 0) / count
+
+    return {
+      projectId: p.id,
+      title: p.title,
+      schoolName: p.schoolName,
+      schoolLevel: p.schoolLevel,
+      categoryId: p.category.id,
+      categoryName: p.category.name,
+      categoryColor: p.category.color,
+      avgTotal: avg("totalScore"),
+      avgPartA: avg("partAScore"),
+      avgPartB: avg("partBScore"),
+      avgPartC: avg("partCScore"),
+      judgeCount: count,
+      maxScore: p.schoolLevel === "JSS" ? 65 : 75,
+    }
+  })
+
+  withAvg.sort((a, b) => b.avgTotal - a.avgTotal)
+
+  const ranked = withAvg.map((row, idx) => ({ ...row, rank: idx + 1 }))
+
+  return ranked
 }
