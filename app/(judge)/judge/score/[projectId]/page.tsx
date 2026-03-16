@@ -23,6 +23,9 @@ export default async function ScoringPage({ params }: Props) {
               criteria: { orderBy: { order: "asc" } },
             },
           },
+          event: {
+            select: { anonymousJudging: true },
+          },
           files: {
             select: { id: true, name: true, url: true, type: true, size: true },
           },
@@ -55,6 +58,14 @@ export default async function ScoringPage({ params }: Props) {
     itemMap[item.criterionId] = item.value
   }
 
+  const files = project.files.map((f) => ({
+    id: f.id,
+    name: f.name,
+    url: f.url,
+    type: f.type,
+    size: f.size,
+  }))
+
   return (
     <div className="min-h-screen bg-[#F4F4F0]">
       <ScoringClient
@@ -63,6 +74,7 @@ export default async function ScoringPage({ params }: Props) {
         projectTitle={project.title}
         schoolName={project.schoolName}
         teacherName={project.teacherName}
+        projectCode={project.projectCode}
         schoolLevel={project.schoolLevel as "JSS" | "SENIOR"}
         categoryName={project.category.name}
         categoryColor={project.category.color}
@@ -77,6 +89,8 @@ export default async function ScoringPage({ params }: Props) {
         existingSession={
           (assignment.score?.session as "SESSION_ONE" | "SESSION_TWO") ?? null
         }
+        files={files}
+        anonymousJudging={project.event.anonymousJudging}
       />
     </div>
   )

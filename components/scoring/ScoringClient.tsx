@@ -12,6 +12,9 @@ import {
   Lock,
   CheckCircle2,
   AlertTriangle,
+  FileText,
+  Image as ImageIcon,
+  Download,
 } from "lucide-react"
 import {
   Dialog,
@@ -33,10 +36,24 @@ type CriterionData = {
   order: number
 }
 
+type FileData = {
+  id: string
+  name: string
+  url: string
+  type: string
+  size: number
+}
+
 type AISuggestion = {
   criterionId: string
   suggestedScore: number
   justification: string
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 interface Props {
@@ -45,6 +62,7 @@ interface Props {
   projectTitle: string
   schoolName: string
   teacherName: string
+  projectCode: string | null
   schoolLevel: "JSS" | "SENIOR"
   categoryName: string
   categoryColor: string
@@ -55,6 +73,8 @@ interface Props {
   existingNotes: string
   existingStatus: "DRAFT" | "SUBMITTED" | null
   existingSession: "SESSION_ONE" | "SESSION_TWO" | null
+  files: FileData[]
+  anonymousJudging: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -137,7 +157,7 @@ function CriterionSlider({
         </div>
       </div>
 
-      {/* Slider */}
+      {/* Slider — 44px touch target for mobile */}
       <div className="px-1">
         <input
           type="range"
@@ -148,10 +168,10 @@ function CriterionSlider({
           onChange={(e) => onChange(parseFloat(e.target.value))}
           disabled={isDisabled}
           className={cn(
-            "w-full h-3 rounded-full appearance-none cursor-pointer",
+            "w-full h-3 rounded-full appearance-none cursor-pointer touch-action-none",
             "bg-[#F4F4F0] border border-black",
-            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-black [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-pink-400 [&::-webkit-slider-thumb]:transition-colors",
-            "[&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-black [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-black [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:hover:bg-pink-400",
+            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-11 [&::-webkit-slider-thumb]:h-11 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-black [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-pink-400 [&::-webkit-slider-thumb]:transition-colors sm:[&::-webkit-slider-thumb]:w-7 sm:[&::-webkit-slider-thumb]:h-7",
+            "[&::-moz-range-thumb]:w-11 [&::-moz-range-thumb]:h-11 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-black [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-black [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:hover:bg-pink-400 sm:[&::-moz-range-thumb]:w-7 sm:[&::-moz-range-thumb]:h-7",
             isDisabled && "opacity-50 cursor-not-allowed [&::-webkit-slider-thumb]:cursor-not-allowed [&::-moz-range-thumb]:cursor-not-allowed"
           )}
         />
@@ -189,6 +209,7 @@ export function ScoringClient({
   projectTitle,
   schoolName,
   teacherName,
+  projectCode,
   schoolLevel,
   categoryName,
   categoryColor,
@@ -198,6 +219,8 @@ export function ScoringClient({
   existingScoreValues,
   existingNotes,
   existingStatus,
+  files,
+  anonymousJudging,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -401,9 +424,15 @@ export function ScoringClient({
             <div className="p-5 flex flex-col gap-3">
               <h1 className="text-xl font-bold leading-tight">{projectTitle}</h1>
               <div className="flex items-center gap-4 flex-wrap text-sm text-muted-foreground">
-                <span>{schoolName}</span>
-                <span>·</span>
-                <span>{teacherName}</span>
+                {anonymousJudging ? (
+                  <span className="font-mono">{projectCode ?? "Anonymous"}</span>
+                ) : (
+                  <>
+                    <span>{schoolName}</span>
+                    <span>·</span>
+                    <span>{teacherName}</span>
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span
@@ -430,6 +459,72 @@ export function ScoringClient({
               <div>
                 <p className="text-xs font-bold text-pink-700 mb-1">AI Summary</p>
                 <p className="text-sm text-pink-900 leading-relaxed">{aiSummary}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Project Files */}
+          {files.length > 0 && (
+            <div className="bg-white border border-black rounded-lg overflow-hidden">
+              <div className="p-4 border-b border-black">
+                <h3 className="text-sm font-bold">Project Files</h3>
+              </div>
+              <div className="p-4 flex flex-col gap-3">
+                {/* Image thumbnails */}
+                {files.filter((f) => f.type.startsWith("image/")).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <ImageIcon className="size-3.5" /> Images
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {files
+                        .filter((f) => f.type.startsWith("image/"))
+                        .map((f) => (
+                          <a
+                            key={f.id}
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block aspect-square rounded-md border border-black overflow-hidden hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
+                          >
+                            <img
+                              src={f.url}
+                              alt={f.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </a>
+                        ))}
+                    </div>
+                  </div>
+                )}
+                {/* PDF download links */}
+                {files.filter((f) => f.type === "application/pdf").length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <FileText className="size-3.5" /> Documents
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {files
+                        .filter((f) => f.type === "application/pdf")
+                        .map((f) => (
+                          <a
+                            key={f.id}
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-black bg-[#F4F4F0] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
+                          >
+                            <FileText className="size-4 text-red-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{f.name}</p>
+                              <p className="text-[11px] text-muted-foreground">{formatFileSize(f.size)}</p>
+                            </div>
+                            <Download className="size-3.5 text-muted-foreground flex-shrink-0" />
+                          </a>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -484,8 +579,8 @@ export function ScoringClient({
           ))}
         </div>
 
-        {/* ── RIGHT COLUMN (sticky sidebar) ── */}
-        <div className="lg:w-80 flex-shrink-0">
+        {/* ── RIGHT COLUMN (sticky sidebar — stacks below on mobile) ── */}
+        <div className="w-full lg:w-80 flex-shrink-0">
           <div className="lg:sticky lg:top-6 flex flex-col gap-4">
             {/* Score summary */}
             <div className="bg-white border border-black rounded-lg p-5">
@@ -611,6 +706,35 @@ export function ScoringClient({
           </div>
         </div>
       </div>
+
+      {/* ── Mobile sticky bottom bar ── */}
+      {!isSubmitted && (
+        <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-white border-t-2 border-black px-4 py-3 flex items-center justify-between z-50 safe-area-pb">
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground">Grand Total</span>
+            <span className="text-xl font-bold text-pink-500">{grandTotal}<span className="text-sm font-normal text-muted-foreground">/{grandMax}</span></span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleSave("DRAFT")}
+              disabled={isPending}
+              className="px-3 py-2.5 text-sm font-semibold border border-black rounded bg-white hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all disabled:opacity-50"
+            >
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            </button>
+            <button
+              onClick={() => setConfirmOpen(true)}
+              disabled={isPending}
+              className="px-4 py-2.5 text-sm font-bold bg-black text-white border border-black rounded hover:bg-pink-400 hover:text-black transition-all disabled:opacity-50"
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom spacer for mobile sticky bar */}
+      {!isSubmitted && <div className="h-20 lg:hidden" />}
 
       {/* ── Submit Confirmation Dialog ── */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>

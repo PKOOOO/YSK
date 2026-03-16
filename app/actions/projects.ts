@@ -21,7 +21,18 @@ export async function createProject(input: unknown) {
   try {
     const data = CreateProjectSchema.parse(input)
     const project = await prisma.project.create({ data })
-    return { success: true as const, data: project }
+
+    // Auto-generate projectCode: first 3 letters of category name + sequential number
+    const category = await prisma.category.findUnique({ where: { id: data.categoryId } })
+    const prefix = (category?.name ?? "GEN").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "GEN"
+    const count = await prisma.project.count({ where: { categoryId: data.categoryId } })
+    const code = `${prefix}-${String(count).padStart(3, "0")}`
+    const updated = await prisma.project.update({
+      where: { id: project.id },
+      data: { projectCode: code },
+    })
+
+    return { success: true as const, data: updated }
   } catch (error) {
     return {
       success: false as const,
@@ -32,8 +43,17 @@ export async function createProject(input: unknown) {
 
 export async function approveProject(id: string) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
     const project = await prisma.project.update({ where: { id }, data: { approved: true } })
+    await prisma.auditLog.create({
+      data: {
+        userId: admin.id,
+        action: "PROJECT_APPROVED",
+        entityId: id,
+        entityType: "Project",
+        meta: { projectTitle: project.title },
+      },
+    })
     revalidatePath("/dashboard")
     return { success: true as const, data: project }
   } catch (error) {
@@ -46,8 +66,18 @@ export async function approveProject(id: string) {
 
 export async function rejectProject(id: string) {
   try {
-    await requireAdmin()
+    const admin = await requireAdmin()
+    const project = await prisma.project.findUnique({ where: { id } })
     await prisma.project.delete({ where: { id } })
+    await prisma.auditLog.create({
+      data: {
+        userId: admin.id,
+        action: "PROJECT_REJECTED",
+        entityId: id,
+        entityType: "Project",
+        meta: { projectTitle: project?.title ?? "Unknown" },
+      },
+    })
     revalidatePath("/dashboard")
     return { success: true as const }
   } catch (error) {
