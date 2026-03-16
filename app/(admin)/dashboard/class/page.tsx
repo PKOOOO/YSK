@@ -39,11 +39,11 @@ export default async function CategoriesPage() {
     )
   }
 
-  const categories = activeEvent.categories.map((c) => ({
+  const categories = activeEvent.categories.map((c: { id: string; name: string; color: string; schoolLevel: string; criteria: { id: string; name: string; description: string | null; maxScore: number; order: number }[]; _count: { projects: number } }) => ({
     id: c.id,
     name: c.name,
     color: c.color,
-    schoolLevel: c.schoolLevel,
+    schoolLevel: c.schoolLevel as "JSS" | "SENIOR",
     projectCount: c._count.projects,
     criteria: c.criteria.map((cr) => ({
       id: cr.id,
