@@ -14,11 +14,8 @@ function makePrismaClient() {
   return new PrismaClient({ adapter })
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, prop) {
-    if (!globalForPrisma.prisma) {
-      globalForPrisma.prisma = makePrismaClient()
-    }
-    return Reflect.get(globalForPrisma.prisma, prop)
-  },
-})
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = makePrismaClient()
+}
+
+export const prisma = globalForPrisma.prisma
