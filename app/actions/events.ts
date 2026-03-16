@@ -77,7 +77,7 @@ export async function cloneEvent(id: string) {
     const source = await prisma.event.findUniqueOrThrow({
       where: { id },
       include: { categories: { include: { criteria: true } } },
-    })
+    }) as { name: string; type: any; judgingMode: any; categories: { name: string; color: string; criteria: { name: string; description: string | null; maxScore: number; weight: number; order: number }[] }[] }
     const clone = await prisma.event.create({
       data: {
         name: `${source.name} (Copy)`,

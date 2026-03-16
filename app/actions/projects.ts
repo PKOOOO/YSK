@@ -178,10 +178,10 @@ export async function deleteProject(id: string) {
   try {
     await requireAdmin()
 
-    const files = await prisma.projectFile.findMany({
+    const files = (await prisma.projectFile.findMany({
       where: { projectId: id },
       select: { key: true },
-    })
+    })) as unknown as { key: string }[]
 
     if (files.length > 0) {
       const { UTApi } = await import("uploadthing/server")

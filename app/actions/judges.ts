@@ -203,7 +203,7 @@ export async function flagConflict(assignmentId: string) {
 export async function getJudgesByEvent(eventId: string) {
   await requireAdmin()
 
-  const judges = await prisma.user.findMany({
+  const judges = (await prisma.user.findMany({
     where: {
       role: "JUDGE",
       judgeAssignments: { some: { project: { eventId } } },
@@ -222,7 +222,7 @@ export async function getJudgesByEvent(eventId: string) {
         },
       },
     },
-  })
+  })) as unknown as { id: string; name: string; email: string; judgeAssignments: { id: string; projectId: string; conflicted: boolean; score: { status: string } | null }[] }[]
 
   return judges.map((j) => {
     const assigned = j.judgeAssignments.length
@@ -241,10 +241,10 @@ export async function getJudgesByEvent(eventId: string) {
 }
 
 export async function getJudgeProgress(judgeId: string, eventId: string) {
-  const assignments = await prisma.judgeAssignment.findMany({
+  const assignments = (await prisma.judgeAssignment.findMany({
     where: { judgeId, project: { eventId } },
     include: { score: { select: { status: true } } },
-  })
+  })) as unknown as { score: { status: string } | null }[]
 
   const assigned = assignments.length
   const scored = assignments.filter(

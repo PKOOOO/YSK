@@ -174,7 +174,7 @@ export async function getScoreByAssignment(assignmentId: string) {
 }
 
 export async function getLeaderboard(eventId: string, categoryId?: string) {
-  const projects = await prisma.project.findMany({
+  const projects = (await prisma.project.findMany({
     where: {
       eventId,
       ...(categoryId ? { categoryId } : {}),
@@ -182,7 +182,7 @@ export async function getLeaderboard(eventId: string, categoryId?: string) {
     include: {
       category: { select: { id: true, name: true, color: true } },
       scores: {
-        where: { status: ScoreStatus.SUBMITTED },
+        where: { status: "SUBMITTED" },
         select: {
           totalScore: true,
           partAScore: true,
@@ -191,7 +191,7 @@ export async function getLeaderboard(eventId: string, categoryId?: string) {
         },
       },
     },
-  })
+  })) as unknown as { id: string; title: string; schoolName: string; schoolLevel: string; category: { id: string; name: string; color: string }; scores: { totalScore: number; partAScore: number; partBScore: number; partCScore: number }[] }[]
 
   const scored = projects.filter((p) => p.scores.length > 0)
 
@@ -213,7 +213,7 @@ export async function getLeaderboard(eventId: string, categoryId?: string) {
       avgPartB: avg("partBScore"),
       avgPartC: avg("partCScore"),
       judgeCount: count,
-      maxScore: p.schoolLevel === "JSS" ? 65 : 75,
+      maxScore: p.schoolLevel === "JSS" ? 65 : 80,
     }
   })
 

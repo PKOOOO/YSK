@@ -20,7 +20,7 @@ export async function generateAbstractSummary(projectId: string) {
           select: { url: true, type: true, name: true },
         },
       },
-    })
+    }) as { title: string; abstract: string | null; aiSummary: string | null; files: { url: string; type: string; name: string }[] }
 
     console.log("[AI] project fetched:", project.title)
 
@@ -121,7 +121,7 @@ export async function generateSchoolFeedback(projectId: string) {
         scores: { include: { items: { include: { criterion: true } } } },
         category: { include: { criteria: true } },
       },
-    })
+    }) as { title: string; schoolName: string; teacherName: string; scores: { items: { criterion: { name: string; maxScore: number }; value: number }[]; notes: string | null }[]; category: { criteria: { name: string; maxScore: number }[] } }
 
     const scoreBreakdown = project.scores
       .flatMap((s) => s.items.map((item) => `${item.criterion.name}: ${item.value}/${item.criterion.maxScore}`))
@@ -185,7 +185,7 @@ export async function generateResultsReport(eventId: string) {
           },
         },
       },
-    })
+    }) as { name: string; projects: { title: string; schoolName: string; schoolLevel: string; category: { name: string }; scores: { totalScore: number; partAScore: number; partBScore: number; partCScore: number }[] }[] }
 
     const scoredProjects = event.projects
       .filter((p) => p.scores.length > 0)
