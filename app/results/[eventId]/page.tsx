@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma"
-import { ScoreStatus } from "@prisma/client"
 import { PublicResultsClient } from "@/components/results/PublicResultsClient"
 import { Trophy, Clock } from "lucide-react"
 import { notFound } from "next/navigation"
@@ -108,7 +107,7 @@ export default async function PublicResultsPage({ params }: PageProps) {
     include: {
       category: { select: { id: true, name: true, color: true } },
       scores: {
-        where: { status: ScoreStatus.SUBMITTED },
+        where: { status: "SUBMITTED" },
         select: {
           totalScore: true,
           partAScore: true,
@@ -132,7 +131,7 @@ export default async function PublicResultsPage({ params }: PageProps) {
       const partA = avg("partAScore")
       const partB = avg("partBScore")
       const partC = avg("partCScore")
-      const maxScore = p.schoolLevel === "JSS" ? 65 : 75
+      const maxScore = p.schoolLevel === "JSS" ? 65 : 80
 
       return {
         projectId: p.id,

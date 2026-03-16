@@ -4,7 +4,6 @@ import { ProjectsTable } from "@/components/dashboard/ProjectsTable"
 import { ProgressChart } from "@/components/dashboard/ProgressChart"
 import Link from "next/link"
 import { FileText, Users, CheckCircle2, Clock } from "lucide-react"
-import { ScoreStatus } from "@prisma/client"
 
 export default async function DashboardPage() {
   await requireAdmin()
@@ -20,7 +19,7 @@ export default async function DashboardPage() {
             include: { judge: true },
           },
           scores: {
-            where: { status: ScoreStatus.SUBMITTED },
+            where: { status: "SUBMITTED" },
             take: 1,
           },
           files: true,
