@@ -4,6 +4,7 @@ import { Trophy, Clock } from "lucide-react"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import Link from "next/link"
+import type { LeaderboardProject } from "@/lib/prisma-types"
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   SCIENCE_CONTEST: "Science Contest",
@@ -102,7 +103,7 @@ export default async function PublicResultsPage({ params }: PageProps) {
     )
   }
 
-  const projects = await prisma.project.findMany({
+  const projects = (await prisma.project.findMany({
     where: { eventId: event.id },
     include: {
       category: { select: { id: true, name: true, color: true } },
@@ -117,7 +118,7 @@ export default async function PublicResultsPage({ params }: PageProps) {
       },
     },
     orderBy: { title: "asc" },
-  })
+  })) as unknown as LeaderboardProject[]
 
   const scoredProjects = projects.filter((p) => p.scores.length > 0)
 

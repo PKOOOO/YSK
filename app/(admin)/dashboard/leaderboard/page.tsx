@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { LeaderboardClient } from "@/components/leaderboard/LeaderboardClient"
 import Link from "next/link"
 import { Trophy } from "lucide-react"
+import type { LeaderboardProject } from "@/lib/prisma-types"
 
 export default async function LeaderboardPage() {
   await requireAdmin()
@@ -35,7 +36,7 @@ export default async function LeaderboardPage() {
   }
 
   // Fetch all approved projects with their SUBMITTED scores
-  const projects = await prisma.project.findMany({
+  const projects = (await prisma.project.findMany({
     where: { eventId: event.id },
     include: {
       category: { select: { id: true, name: true, color: true } },
@@ -50,7 +51,7 @@ export default async function LeaderboardPage() {
       },
     },
     orderBy: { title: "asc" },
-  })
+  })) as unknown as LeaderboardProject[]
 
   // Only projects with at least one submitted score
   const scoredProjects = projects.filter((p) => p.scores.length > 0)
@@ -59,8 +60,8 @@ export default async function LeaderboardPage() {
   const rows = scoredProjects
     .map((p) => {
       const judgeCount = p.scores.length
-      const avg = (field: keyof (typeof p.scores)[0]) =>
-        p.scores.reduce((sum, s) => sum + (s[field] as number), 0) / judgeCount
+      const avg = (field: "totalScore" | "partAScore" | "partBScore" | "partCScore") =>
+        p.scores.reduce((sum, s) => sum + s[field], 0) / judgeCount
 
       const finalScore = avg("totalScore")
       const partA = avg("partAScore")

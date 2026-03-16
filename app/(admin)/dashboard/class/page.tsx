@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { CategoriesClient } from "@/components/categories/CategoriesClient"
 import Link from "next/link"
 import { PlusCircle } from "lucide-react"
+import type { CategoryWithCriteria } from "@/lib/prisma-types"
 
 export default async function CategoriesPage() {
   await requireAdmin()
@@ -39,7 +40,7 @@ export default async function CategoriesPage() {
     )
   }
 
-  const categories = activeEvent.categories.map((c) => ({
+  const categories = (activeEvent.categories as unknown as CategoryWithCriteria[]).map((c) => ({
     id: c.id,
     name: c.name,
     color: c.color,

@@ -2,6 +2,7 @@ import { requireJudge } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { ScoringClient } from "@/components/scoring/ScoringClient"
+import type { ScoringCriterion, ScoringFile } from "@/lib/prisma-types"
 
 interface Props {
   params: Promise<{ projectId: string }>
@@ -44,7 +45,7 @@ export default async function ScoringPage({ params }: Props) {
   }
 
   const project = assignment.project
-  const criteria = project.category.criteria.map((c) => ({
+  const criteria = (project.category.criteria as unknown as ScoringCriterion[]).map((c) => ({
     id: c.id,
     name: c.name,
     description: c.description,
@@ -54,11 +55,11 @@ export default async function ScoringPage({ params }: Props) {
 
   const existingItems = assignment.score?.items ?? []
   const itemMap: Record<string, number> = {}
-  for (const item of existingItems) {
+  for (const item of existingItems as unknown as { criterionId: string; value: number }[]) {
     itemMap[item.criterionId] = item.value
   }
 
-  const files = project.files.map((f) => ({
+  const files = (project.files as unknown as ScoringFile[]).map((f) => ({
     id: f.id,
     name: f.name,
     url: f.url,

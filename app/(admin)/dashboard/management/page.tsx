@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { ManagementClient } from "@/components/management/ManagementClient"
 import { Users } from "lucide-react"
 import Link from "next/link"
+import type { JudgeWithAssignments, ApprovedProject } from "@/lib/prisma-types"
 
 export default async function ManagementPage() {
   await requireAdmin()
@@ -31,7 +32,7 @@ export default async function ManagementPage() {
   }
 
   // Fetch ALL judges, including those with no assignments yet
-  const judges = await prisma.user.findMany({
+  const judges = (await prisma.user.findMany({
     where: { role: "JUDGE" },
     include: {
       judgeAssignments: {
@@ -51,10 +52,10 @@ export default async function ManagementPage() {
       },
     },
     orderBy: { name: "asc" },
-  })
+  })) as unknown as JudgeWithAssignments[]
 
   // Fetch all approved projects in this event for the assignment selector
-  const allApprovedProjects = await prisma.project.findMany({
+  const allApprovedProjects = (await prisma.project.findMany({
     where: { eventId: activeEvent.id, approved: true },
     select: {
       id: true,
@@ -64,7 +65,7 @@ export default async function ManagementPage() {
       assignments: { select: { judgeId: true } },
     },
     orderBy: { title: "asc" },
-  })
+  })) as unknown as ApprovedProject[]
 
   return (
     <ManagementClient

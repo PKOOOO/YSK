@@ -1,11 +1,12 @@
 import { requireJudge } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { JudgePortalClient } from "@/components/judge/JudgePortalClient"
+import type { JudgeAssignmentWithProject } from "@/lib/prisma-types"
 
 export default async function JudgePage() {
   const judge = await requireJudge()
 
-  const assignments = await prisma.judgeAssignment.findMany({
+  const assignments = (await prisma.judgeAssignment.findMany({
     where: { judgeId: judge.id },
     include: {
       project: {
@@ -29,7 +30,7 @@ export default async function JudgePage() {
       },
     },
     orderBy: { assignedAt: "asc" },
-  })
+  })) as unknown as JudgeAssignmentWithProject[]
 
   // Fetch event settings for anonymous mode (use first project's eventId)
   let anonymousJudging = false

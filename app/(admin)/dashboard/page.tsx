@@ -4,6 +4,7 @@ import { ProjectsTable } from "@/components/dashboard/ProjectsTable"
 import { ProgressChart } from "@/components/dashboard/ProgressChart"
 import Link from "next/link"
 import { FileText, Users, CheckCircle2, Clock } from "lucide-react"
+import type { ProjectWithRelations } from "@/lib/prisma-types"
 
 export default async function DashboardPage() {
   await requireAdmin()
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
     )
   }
 
-  const projects = event.projects
+  const projects = event.projects as unknown as ProjectWithRelations[]
 
   // Compute stats
   const totalProjects = projects.length
