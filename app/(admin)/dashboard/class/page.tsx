@@ -1,6 +1,5 @@
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { EventStatus } from "@prisma/client"
 import { CategoriesClient } from "@/components/categories/CategoriesClient"
 import Link from "next/link"
 import { PlusCircle } from "lucide-react"
@@ -9,7 +8,7 @@ export default async function CategoriesPage() {
   await requireAdmin()
 
   const activeEvent = await prisma.event.findFirst({
-    where: { status: EventStatus.ACTIVE },
+    where: { status: "ACTIVE" },
     orderBy: { createdAt: "desc" },
     include: {
       categories: {

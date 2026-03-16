@@ -1,6 +1,5 @@
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { EventStatus } from "@prisma/client"
 import { ManagementClient } from "@/components/management/ManagementClient"
 import { Users } from "lucide-react"
 import Link from "next/link"
@@ -9,7 +8,7 @@ export default async function ManagementPage() {
   await requireAdmin()
 
   const activeEvent = await prisma.event.findFirst({
-    where: { status: EventStatus.ACTIVE },
+    where: { status: "ACTIVE" },
     orderBy: { createdAt: "desc" },
   })
 

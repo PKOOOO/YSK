@@ -1,6 +1,5 @@
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { EventStatus, ScoreStatus } from "@prisma/client"
 import { LeaderboardClient } from "@/components/leaderboard/LeaderboardClient"
 import Link from "next/link"
 import { Trophy } from "lucide-react"
@@ -9,7 +8,7 @@ export default async function LeaderboardPage() {
   await requireAdmin()
 
   const event = await prisma.event.findFirst({
-    where: { status: EventStatus.ACTIVE },
+    where: { status: "ACTIVE" },
     orderBy: { createdAt: "desc" },
   })
 
@@ -41,7 +40,7 @@ export default async function LeaderboardPage() {
     include: {
       category: { select: { id: true, name: true, color: true } },
       scores: {
-        where: { status: ScoreStatus.SUBMITTED },
+        where: { status: "SUBMITTED" },
         select: {
           totalScore: true,
           partAScore: true,
@@ -67,7 +66,7 @@ export default async function LeaderboardPage() {
       const partA = avg("partAScore")
       const partB = avg("partBScore")
       const partC = avg("partCScore")
-      const maxScore = p.schoolLevel === "JSS" ? 65 : 75
+      const maxScore = p.schoolLevel === "JSS" ? 65 : 80
 
       return {
         projectId: p.id,
