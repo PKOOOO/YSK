@@ -4,18 +4,17 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
-import { EventType, JudgingMode, EventStatus } from "@prisma/client"
 
 const CreateEventSchema = z.object({
   name: z.string().min(1, "Event name is required").max(100),
-  type: z.nativeEnum(EventType),
-  judgingMode: z.nativeEnum(JudgingMode),
+  type: z.enum(["SCIENCE_CONTEST", "PITCH_FEST", "EXHIBITION", "POPULARITY_POLL", "NOMINATION_LIST", "CREATIVE_COMPETITION", "PERFORMANCE_CONTEST", "APPLICATION_REVIEW"]),
+  judgingMode: z.enum(["OFFICIAL_JUDGE", "PUBLIC_VOTING", "GUEST_JUDGE", "OFFICIAL_AND_GUEST", "OFFICIAL_AND_PUBLIC"]),
 })
 
 const UpdateEventSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().optional(),
-  status: z.nativeEnum(EventStatus).optional(),
+  status: z.enum(["DRAFT", "ACTIVE", "CLOSED", "ARCHIVED"]).optional(),
   resultsPublic: z.boolean().optional(),
   anonymousJudging: z.boolean().optional(),
   requireComments: z.boolean().optional(),

@@ -4,7 +4,6 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin, requireJudge } from "@/lib/auth"
-import { ScoreStatus, JudgingSession } from "@prisma/client"
 
 const SaveScoreSchema = z.object({
   assignmentId: z.string().min(1),
@@ -15,8 +14,8 @@ const SaveScoreSchema = z.object({
     })
   ),
   notes: z.string().optional(),
-  status: z.nativeEnum(ScoreStatus),
-  session: z.nativeEnum(JudgingSession),
+  status: z.enum(["DRAFT", "SUBMITTED"]),
+  session: z.enum(["SESSION_ONE", "SESSION_TWO"]),
 })
 
 export async function saveScore(input: unknown) {
