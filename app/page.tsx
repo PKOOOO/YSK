@@ -226,6 +226,7 @@ export default async function LandingPage() {
               alt="Young Scientists Kenya"
               width={120}
               height={48}
+              unoptimized
               className="h-12 w-auto object-contain"
             />
             <Image
@@ -233,6 +234,7 @@ export default async function LandingPage() {
               alt="TechKidz Africa"
               width={120}
               height={48}
+              unoptimized
               className="h-12 w-auto object-contain"
             />
           </div>
