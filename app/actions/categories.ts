@@ -4,7 +4,7 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
-import { SchoolLevel } from "@prisma/client"
+
 
 // ─── Criteria templates ────────────────────────────────────────────────────────
 
@@ -93,8 +93,8 @@ const SENIOR_CRITERIA = [
   { name: "Skill / workmanship", description: "Part C — Scientific Thought", maxScore: 2, order: 38 },
 ]
 
-async function seedCriteria(categoryId: string, schoolLevel: SchoolLevel) {
-  const criteria = schoolLevel === SchoolLevel.JSS ? JSS_CRITERIA : SENIOR_CRITERIA
+async function seedCriteria(categoryId: string, schoolLevel: "JSS" | "SENIOR") {
+  const criteria = schoolLevel === "JSS" ? JSS_CRITERIA : SENIOR_CRITERIA
   await prisma.criterion.createMany({
     data: criteria.map((c) => ({ ...c, categoryId })),
   })
@@ -106,7 +106,7 @@ const CreateCategorySchema = z.object({
   eventId: z.string().min(1),
   name: z.string().min(1, "Category name is required").max(100),
   color: z.string().min(1),
-  schoolLevel: z.nativeEnum(SchoolLevel),
+  schoolLevel: z.enum(["JSS", "SENIOR"]),
 })
 
 const UpdateCategorySchema = z.object({

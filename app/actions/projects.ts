@@ -4,7 +4,6 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
-import { SchoolLevel } from "@prisma/client"
 
 const CreateProjectSchema = z.object({
   title: z.string().min(1, "Project title is required").max(100),
@@ -14,7 +13,7 @@ const CreateProjectSchema = z.object({
   teacherEmail: z.string().email("Invalid email address"),
   categoryId: z.string().min(1, "Category is required"),
   eventId: z.string().min(1),
-  schoolLevel: z.nativeEnum(SchoolLevel),
+  schoolLevel: z.enum(["JSS", "SENIOR"]),
 })
 
 export async function createProject(input: unknown) {

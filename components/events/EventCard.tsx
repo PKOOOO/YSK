@@ -1,10 +1,10 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import type { Event, SchoolLevel } from "@prisma/client"
+import type { Event } from "@prisma/client"
 
 export type EventWithProjects = Event & {
   _count: { projects: number }
-  projects: { schoolLevel: SchoolLevel }[]
+  projects: { schoolLevel: "JSS" | "SENIOR" }[]
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -43,10 +43,10 @@ export function EventCard({ event }: EventCardProps) {
     schoolLevels.size === 0
       ? null
       : schoolLevels.size > 1
-      ? "Mixed"
-      : Array.from(schoolLevels)[0] === "JSS"
-      ? "JSS"
-      : "Senior"
+        ? "Mixed"
+        : Array.from(schoolLevels)[0] === "JSS"
+          ? "JSS"
+          : "Senior"
 
   const statusLabel = event.status.charAt(0) + event.status.slice(1).toLowerCase()
 
