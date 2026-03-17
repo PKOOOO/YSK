@@ -153,8 +153,32 @@ export async function removeJudgeFromEvent(input: unknown) {
     await requireAdmin()
     const { judgeId, eventId } = RemoveJudgeSchema.parse(input)
 
-    await prisma.judgeAssignment.deleteMany({
-      where: { judgeId, project: { eventId } },
+    // Use a transaction to clean up all judge data for this event
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete score items for this judge's scores in the event
+      await tx.scoreItem.deleteMany({
+        where: { score: { judgeId, project: { eventId } } },
+      })
+
+      // 2. Delete scores for this judge in the event
+      await tx.score.deleteMany({
+        where: { judgeId, project: { eventId } },
+      })
+
+      // 3. Delete judge assignments for this event
+      await tx.judgeAssignment.deleteMany({
+        where: { judgeId, project: { eventId } },
+      })
+
+      // 4. Check if the judge has any remaining assignments in other events
+      const remainingAssignments = await tx.judgeAssignment.count({
+        where: { judgeId },
+      })
+
+      // 5. If no remaining assignments, remove the user record entirely
+      if (remainingAssignments === 0) {
+        await tx.user.delete({ where: { id: judgeId } })
+      }
     })
 
     revalidatePath("/dashboard/management")
