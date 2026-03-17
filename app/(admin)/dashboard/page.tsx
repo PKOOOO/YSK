@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { ProjectsTable } from "@/components/dashboard/ProjectsTable"
 import { ProgressChart } from "@/components/dashboard/ProgressChart"
+import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton"
 import Link from "next/link"
 import { FileText, Users, CheckCircle2, Clock } from "lucide-react"
 import type { ProjectWithRelations } from "@/lib/prisma-types"
@@ -158,6 +159,16 @@ export default async function DashboardPage() {
               All Events
             </Link>
           </div>
+        </div>
+
+        {/* Submission link */}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Submission Link
+          </span>
+          <CopyLinkButton
+            url={`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/submit/${event.id}`}
+          />
         </div>
       </div>
 
