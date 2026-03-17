@@ -1,8 +1,12 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import type { Event } from "@prisma/client"
 
-export type EventWithProjects = Event & {
+export interface EventWithProjects {
+  id: string
+  name: string
+  type: string
+  status: string
+  judgingMode: string
   _count: { projects: number }
   projects: { schoolLevel: "JSS" | "SENIOR" }[]
 }
