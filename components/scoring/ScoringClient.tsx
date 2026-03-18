@@ -157,7 +157,7 @@ function CriterionSlider({
         </div>
       </div>
 
-      {/* Slider — 44px touch target for mobile */}
+      {/* Slider — 44px touch target for mobile, track fills with color */}
       <div className="px-1">
         <input
           type="range"
@@ -169,11 +169,15 @@ function CriterionSlider({
           disabled={isDisabled}
           className={cn(
             "w-full h-3 rounded-full appearance-none cursor-pointer touch-action-none",
-            "bg-[#F4F4F0] border border-black",
+            "border border-black",
             "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-11 [&::-webkit-slider-thumb]:h-11 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-black [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-pink-400 [&::-webkit-slider-thumb]:transition-colors sm:[&::-webkit-slider-thumb]:w-7 sm:[&::-webkit-slider-thumb]:h-7",
             "[&::-moz-range-thumb]:w-11 [&::-moz-range-thumb]:h-11 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-black [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-black [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:hover:bg-pink-400 sm:[&::-moz-range-thumb]:w-7 sm:[&::-moz-range-thumb]:h-7",
+            "[&::-moz-range-progress]:bg-pink-400 [&::-moz-range-progress]:rounded-full [&::-moz-range-progress]:h-full",
             isDisabled && "opacity-50 cursor-not-allowed [&::-webkit-slider-thumb]:cursor-not-allowed [&::-moz-range-thumb]:cursor-not-allowed"
           )}
+          style={{
+            background: `linear-gradient(to right, #f472b6 0%, #f472b6 ${(value / criterion.maxScore) * 100}%, #F4F4F0 ${(value / criterion.maxScore) * 100}%, #F4F4F0 100%)`,
+          }}
         />
       </div>
 
@@ -579,17 +583,26 @@ export function ScoringClient({
             { part: "C" as const, items: partC, score: partCScore, max: partCMax },
           ].map(({ part, items, score, max }) => (
             <div key={part}>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h2 className="text-base font-bold">
-                    {PART_HEADERS[part].label}{" "}
-                    <span className="font-normal text-muted-foreground">
-                      — {PART_HEADERS[part].sub}
-                    </span>
-                  </h2>
+              <div className="flex flex-col gap-2 mb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-bold">
+                      {PART_HEADERS[part].label}{" "}
+                      <span className="font-normal text-muted-foreground">
+                        — {PART_HEADERS[part].sub}
+                      </span>
+                    </h2>
+                  </div>
+                  <div className="text-sm font-bold px-3 py-1 rounded-md border border-black bg-[#F4F4F0]">
+                    {score} / {max}
+                  </div>
                 </div>
-                <div className="text-sm font-bold px-3 py-1 rounded-md border border-black bg-[#F4F4F0]">
-                  {score} / {max}
+                {/* Part progress bar */}
+                <div className="h-2 bg-[#F4F4F0] border border-black rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-pink-400 rounded-full transition-all duration-300"
+                    style={{ width: `${max > 0 ? Math.round((score / max) * 100) : 0}%` }}
+                  />
                 </div>
               </div>
               <div className="flex flex-col gap-3">
@@ -618,15 +631,23 @@ export function ScoringClient({
             <div className="bg-white border border-black rounded-lg p-5">
               <h3 className="text-sm font-bold mb-4">Score Summary</h3>
 
-              <div className="flex flex-col gap-2.5 text-sm">
+              <div className="flex flex-col gap-3 text-sm">
                 {[
                   { label: "Part A", score: partAScore, max: partAMax },
                   { label: "Part B", score: partBScore, max: partBMax },
                   { label: "Part C", score: partCScore, max: partCMax },
                 ].map(({ label, score, max }) => (
-                  <div key={label} className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className="font-semibold">{score} / {max}</span>
+                  <div key={label} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="font-semibold">{score} / {max}</span>
+                    </div>
+                    <div className="h-1.5 bg-[#F4F4F0] border border-black/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-pink-400 rounded-full transition-all duration-300"
+                        style={{ width: `${max > 0 ? Math.round((score / max) * 100) : 0}%` }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

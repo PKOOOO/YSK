@@ -268,20 +268,80 @@ export function JudgePortalClient({ judgeName, projects, anonymousJudging }: Pro
         </div>
       )}
 
-      {/* ── Project grid ── */}
-      {filtered.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((project) => (
-            <ProjectCardItem
-              key={project.assignmentId}
-              project={project}
-              onClick={() => router.push(`/judge/score/${project.projectId}`)}
-              onFlagConflict={() => setConflictTarget(project)}
-              anonymousJudging={anonymousJudging}
-            />
-          ))}
-        </div>
-      )}
+      {/* ── Projects grouped by School Level → Category ── */}
+      {filtered.length > 0 && (() => {
+        // Group by school level, then by category
+        const levels: ("JSS" | "SENIOR")[] = ["JSS", "SENIOR"]
+        const grouped = levels
+          .map((level) => {
+            const levelProjects = filtered.filter((p) => p.schoolLevel === level)
+            // Group by category
+            const categoryMap = new Map<string, { name: string; color: string; projects: ProjectCard[] }>()
+            for (const p of levelProjects) {
+              if (!categoryMap.has(p.categoryName)) {
+                categoryMap.set(p.categoryName, { name: p.categoryName, color: p.categoryColor, projects: [] })
+              }
+              categoryMap.get(p.categoryName)!.projects.push(p)
+            }
+            return { level, categories: [...categoryMap.values()], count: levelProjects.length }
+          })
+          .filter((g) => g.count > 0)
+
+        return (
+          <div className="flex flex-col gap-8">
+            {grouped.map(({ level, categories, count }) => (
+              <div key={level}>
+                {/* School level header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span
+                    className={cn(
+                      "text-sm font-bold px-3 py-1 rounded-full border",
+                      level === "JSS"
+                        ? "border-blue-500 text-blue-700 bg-blue-50"
+                        : "border-purple-500 text-purple-700 bg-purple-50"
+                    )}
+                  >
+                    {level === "JSS" ? "JSS" : "Senior"}
+                  </span>
+                  <span className="text-sm text-muted-foreground font-medium">
+                    {count} project{count !== 1 ? "s" : ""}
+                  </span>
+                  <div className="flex-1 h-px bg-black/10" />
+                </div>
+
+                {/* Categories within this level */}
+                <div className="flex flex-col gap-6 pl-1">
+                  {categories.map(({ name, color, projects: catProjects }) => (
+                    <div key={name}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div
+                          className="size-3 rounded-full flex-shrink-0 border border-black/20"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="text-sm font-semibold">{name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({catProjects.length})
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {catProjects.map((project) => (
+                          <ProjectCardItem
+                            key={project.assignmentId}
+                            project={project}
+                            onClick={() => router.push(`/judge/score/${project.projectId}`)}
+                            onFlagConflict={() => setConflictTarget(project)}
+                            anonymousJudging={anonymousJudging}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
 
       {/* ── Conflict Confirmation Dialog ── */}
       <Dialog open={!!conflictTarget} onOpenChange={(open) => !open && setConflictTarget(null)}>
