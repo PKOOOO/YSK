@@ -56,14 +56,14 @@ export function LandingNav({ role }: LandingNavProps) {
                 {/* Left — Logo */}
                 <Link href="/" className="flex items-center gap-3 shrink-0">
                     <Image
-                        src="/ysk.png"
+                        src="/1000.svg"
                         alt="YSK"
                         width={40}
                         height={40}
                         unoptimized
                         className="h-10 w-auto"
                     />
-                    <span className="font-semibold text-sm hidden sm:block">Young Scientists Kenya</span>
+                    <span className="font-semibold text-sm hidden sm:block"></span>
                 </Link>
 
                 {/* Desktop nav */}

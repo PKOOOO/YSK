@@ -222,12 +222,12 @@ export default async function LandingPage() {
           </p>
           <div className="flex items-center justify-center gap-12 flex-wrap">
             <Image
-              src="/ysk.png"
+              src="/1002.svg"
               alt="Young Scientists Kenya"
-              width={120}
-              height={48}
+              width={200}
+              height={80}
               unoptimized
-              className="h-12 w-auto object-contain"
+              className="h-24 w-auto object-contain"
             />
             <Image
               src="/tka.png"
