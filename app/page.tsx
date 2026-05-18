@@ -102,7 +102,7 @@ function ScoreCardMockup() {
   return (
     <div className="border border-black rounded-xl overflow-hidden bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-1 hover:-translate-y-1 transition-all duration-200 w-full max-w-sm mx-auto">
       {/* Pink banner */}
-      <div className="bg-pink-400 px-5 py-3 flex items-center justify-between">
+      <div className="bg-[#6171f8] px-5 py-3 flex items-center justify-between">
         <span className="text-white font-bold text-sm tracking-wide">Engineering</span>
         <span className="text-white/80 text-xs font-mono">PRJ-042</span>
       </div>
@@ -112,7 +112,7 @@ function ScoreCardMockup() {
         <div>
           <h3 className="font-bold text-lg leading-snug">Solar Water Purifier</h3>
           <div className="flex items-center gap-2 mt-1.5">
-            <div className="size-6 rounded-full bg-pink-100 border border-pink-300 flex items-center justify-center text-xs font-bold text-pink-600">M</div>
+            <div className="size-6 rounded-full bg-[#6171f8]/15 border border-[#6171f8]/30 flex items-center justify-center text-xs font-bold text-[#23226e]">M</div>
             <span className="text-sm text-muted-foreground">Makande Girls School</span>
           </div>
         </div>
@@ -140,7 +140,7 @@ function ScoreCardMockup() {
 
         <div className="border-t border-black/10 pt-3 flex items-center justify-between">
           <span className="text-sm font-semibold">Grand Total</span>
-          <span className="text-2xl font-bold text-pink-500">
+          <span className="text-2xl font-bold text-[#6171f8]">
             63<span className="text-sm font-normal text-muted-foreground">/80</span>
           </span>
         </div>
@@ -172,7 +172,7 @@ export default async function LandingPage() {
 
               <h1 className="text-5xl lg:text-6xl font-medium leading-tight tracking-tight">
                 Science Fair Judging,{" "}
-                <span className="text-pink-500">Reimagined.</span>
+                <span className="text-[#6171f8]">Reimagined.</span>
               </h1>
 
               <p className="text-lg text-muted-foreground max-w-md leading-relaxed">
@@ -183,7 +183,7 @@ export default async function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
                   href="/submit"
-                  className="inline-flex items-center justify-center px-6 py-3 text-sm font-semibold bg-black text-white rounded-md border border-black hover:bg-pink-400 hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all"
+                  className="inline-flex items-center justify-center px-6 py-3 text-sm font-semibold bg-[#23226e] text-white rounded-md border border-[#23226e] hover:bg-[#6171f8] hover:text-white hover:shadow-[4px_4px_0px_0px_rgba(35,34,110,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all"
                 >
                   Submit Your Project
                 </Link>
@@ -258,7 +258,7 @@ export default async function LandingPage() {
                 className="bg-white border border-black rounded-xl p-6 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px] transition-all flex flex-col gap-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-3xl font-bold text-pink-400">{num}</span>
+                  <span className="text-3xl font-bold text-[#6171f8]">{num}</span>
                   <Icon className="size-6 text-muted-foreground" />
                 </div>
                 <div>

@@ -42,7 +42,7 @@ export function LandingNav({ role }: LandingNavProps) {
             )}
             <Link
                 href={isSignedIn ? "/sign-out" : "/sign-in"}
-                className="px-6 py-2.5 text-sm font-semibold bg-black text-white hover:bg-pink-400 hover:text-black transition-colors"
+                className="px-6 py-2.5 text-sm font-semibold bg-[#23226e] text-white hover:bg-[#6171f8] hover:text-white transition-colors"
                 onClick={() => setMobileOpen(false)}
             >
                 {isSignedIn ? "Sign Out" : "Sign In"}
